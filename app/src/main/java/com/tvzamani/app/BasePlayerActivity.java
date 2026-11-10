@@ -239,6 +239,14 @@ public abstract class BasePlayerActivity extends Activity {
         err.setText(msg + "\n\nOK / dokun: tekrar dene\nSarı tuş: başka oynatıcı seç\nGeri: çık");
         err.setVisibility(View.VISIBLE);
         err.requestFocus();
+        JSONObject ci = cur();
+        if (ci != null) {
+            final String shown = err.getText().toString();
+            Diag.probe(ci.optString("url"), Hdr.of(ci), t -> runOnUiThread(() -> {
+                if (err.getVisibility() == View.VISIBLE && err.getText().toString().equals(shown))
+                    err.setText(msg + "\n\n" + t + "\n\nOK / dokun: tekrar dene\nSarı tuş: başka oynatıcı seç\nGeri: çık");
+            }));
+        }
     }
 
     // ------------------------------------------------ oynatma akışı
