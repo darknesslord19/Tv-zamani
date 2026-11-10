@@ -133,7 +133,11 @@ main{overflow-y:auto;min-height:0;padding:8px 10px 3em;scrollbar-width:thin}
 .vcard.live .vp{aspect-ratio:16/10;background:linear-gradient(160deg,#1d2230,#12151d)}
 .vp img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .vcard.live .vp img{object-fit:contain;padding:12%}
-.vp .ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:.6em;text-align:center;font-weight:700;color:var(--muted);font-size:.9em}
+.vp .ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:.6em;text-align:center;font-weight:700;color:var(--muted);font-size:.85em;overflow:hidden;line-height:1.25}
+.vp.ld .ph{display:none}
+.vcard.live.poster{width:clamp(120px,10.5vw,180px)}
+.vcard.live.poster .vp{aspect-ratio:2/3;background:var(--panel)}
+.vcard.live.poster .vp img{object-fit:cover;padding:0}
 .vcard:focus .vp,.vcard:hover .vp{border-color:#fff;transform:scale(1.05);box-shadow:0 12px 30px rgba(108,99,255,.35)}
 .vt{margin-top:.45em;font-weight:700;font-size:.88em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .vm{color:var(--muted);font-size:.78em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -142,8 +146,8 @@ main{overflow-y:auto;min-height:0;padding:8px 10px 3em;scrollbar-width:thin}
 .vb.ok{background:var(--ok);color:#000}
 @media (max-width:760px){
  #vnav{padding:0 .8em .5em}
- .vcard{width:112px}.vcard.live{width:140px}
- .hposter{display:none}.ht{font-size:1.5em}.hinfo{padding:1.1em}
+ .vcard,.vcard.live.poster{width:112px}.vcard.live{width:140px}
+ .hposter{height:62%;right:1em;top:1em;bottom:auto}.ht{font-size:1.5em}.hinfo{padding:1.1em}.hero{min-height:300px}
  .vcard:focus .vp,.vcard:hover .vp{transform:none}
 }
 
@@ -481,7 +485,7 @@ function parseM3U(txt){
    const sp=splitUrlHdr(line);line=sp.url;
    if(sp.h||hd)it.h=Object.assign({},hd||{},sp.h||{});hd=null;
    it.url=line;it.id='m'+(++n);
-   it.kind=(/\/(movie|series)\//i.test(line)||/\.(mp4|mkv|avi|mov|m4v|webm)(\?|$)/i.test(line))?'movie':'live';
+   it.kind=(/\/(movie|series)\//i.test(line)||/\.(mp4|mkv|avi|mov|m4v|webm)(\?|$)/i.test(line)||/\((?:19|20)\d{2}\)/.test(it.name||''))?'movie':'live';
    if(it.kind==='live'){liveN++;if(!it.num)it.num=liveN}else delete it.num;
    out.push(it);cur=null;
   }
@@ -609,7 +613,7 @@ async function loadSource(force){
  }
  g.className='grid';g.innerHTML='<div class="loading"><i></i>Liste yükleniyor…</div>';$('#side').innerHTML='';
  const key='cache_'+src.id;const cached=await idb.get(key);
- let c=(!force&&cached&&cached.ua===S().ua&&cached.v===2&&Date.now()-cached.t<S().cacheHours*3600e3)?cached:null;
+ let c=(!force&&cached&&cached.ua===S().ua&&cached.v===3&&Date.now()-cached.t<S().cacheHours*3600e3)?cached:null;
  if(!c){
   try{
    let r;
@@ -617,7 +621,7 @@ async function loadSource(force){
    else if(src.type==='m3u')r={items:parseM3U(await xfetch(src.url))};
    else{const txt=await idb.get('file_'+src.id);if(!txt)throw new Error('M3U dosyası bulunamadı, hesabı düzenleyip dosyayı yeniden seç.');r={items:parseM3U(txt)}}
    if(!r.items.length)throw new Error('Listede oynatılabilir içerik bulunamadı.');
-   c={t:Date.now(),ua:S().ua,v:2,...r};idb.set(key,c);RT.seriesCache.clear();
+   c={t:Date.now(),ua:S().ua,v:3,...r};idb.set(key,c);RT.seriesCache.clear();
   }catch(e){
    if(activeSrc()!==src)return;
    if(cached){c=cached;toast('Güncellenemedi, kayıtlı liste gösteriliyor')}else return renderError(e);
@@ -790,10 +794,14 @@ function tmdbScan(root){
   el.dataset.tm=1;
   tmdbInfo(it).then(i=>{
    if(!i||!i.poster||!document.contains(el)||$('img',el))return;
-   const im=document.createElement('img');im.alt='';im.loading='lazy';im.src=i.poster;im.onerror=()=>im.remove();
+   const im=document.createElement('img');im.alt='';im.loading='lazy';im.src=i.poster;im.onload=()=>vLoad(im);im.onerror=()=>im.remove();
    const ph=$('.ph',el);ph?ph.after(im):el.prepend(im);
   }).catch(()=>{});
  });
+}
+function vLoad(img){
+ const vp=img.closest('.vp');if(!vp)return;vp.classList.add('ld');
+ const c=img.closest('.vcard');if(c&&c.classList.contains('live')&&img.naturalHeight>=img.naturalWidth*1.15)c.classList.add('poster');
 }
 function imgErr(img){
  const c=img.closest('.card,.vcard');img.remove();
@@ -804,12 +812,12 @@ function imgErr(img){
 function itemWatched(it){const h=prof().hist[favKey(it)];return !!(h&&h.dur&&h.pos>=h.dur*.95)}
 function itemProg(it){const h=prof().hist[favKey(it)];return h&&h.dur&&h.pos>30?Math.min(100,h.pos/h.dur*100):0}
 function vcardHTML(it,ri,ci,row){
- const live=it.kind==='live',ct=live?{t:it.name,y:''}:cleanTitle(it.name),pr=itemProg(it),seen=!live&&itemWatched(it);
+ const live=it.kind==='live',ct=cleanTitle(it.name),pr=itemProg(it),seen=!live&&itemWatched(it);
  let meta='';
  if(row.prog){const h=prof().hist[favKey(it)];meta=h&&h.dur?Math.max(1,Math.round((h.dur-h.pos)/60))+' dk kaldı':(it.group||'')}
  else if(live)meta=it.group||'';
  else meta=[ct.y,+it.rating>0?'★ '+(+it.rating).toFixed(1):''].filter(Boolean).join(' · ')||it.group||'';
- const img=it.logo?`<img loading="lazy" src="${esc(it.logo)}" alt="" onerror="imgErr(this)">`:'';
+ const img=it.logo?`<img loading="lazy" src="${esc(it.logo)}" alt="" onload="vLoad(this)" onerror="imgErr(this)">`:'';
  return `<button class="vcard focusable${live?' live':''}" data-r="${ri}" data-c="${ci}" aria-label="${esc(ct.t)}"><div class="vp"><div class="ph">${esc(ct.t)}</div>${img}${row.isNew?'<span class="vb new">YENİ</span>':seen?'<span class="vb ok">✓</span>':''}${pr>1?`<div class="cprog"><i style="width:${pr}%"></i></div>`:''}</div><div class="vt">${esc(ct.t)}</div><div class="vm">${esc(meta)}</div></button>`;
 }
 function renderHome(){
