@@ -37,6 +37,8 @@ import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 
+import org.json.JSONObject;
+
 /**
  * TV Zamanı — web/index.html dosyasını tam ekran çalıştıran kabuk.
  * Tüm arayüz ve mantık HTML'dedir; bu sınıf yalnızca:
@@ -50,6 +52,7 @@ public class MainActivity extends Activity {
     static final String HOST = "appassets.androidplatform.net";
     static final String HOME = "https://" + HOST + "/index.html";
     private static final int FILE_REQ = 4242;
+    private static final int PLAYER_REQ = 4343;
 
     private WebView web;
     private FrameLayout root;
@@ -210,6 +213,14 @@ public class MainActivity extends Activity {
     @Override
     protected void onActivityResult(int req, int res, Intent data) {
         super.onActivityResult(req, res, data);
+        if (req == PLAYER_REQ && data != null && web != null) {
+            String js = "window.nativeDone&&window.nativeDone(" + data.getIntExtra("index", 0) + ","
+                    + data.getLongExtra("pos", 0) + "," + data.getLongExtra("dur", 0) + ","
+                    + JSONObject.quote(data.getStringExtra("err") == null ? "" : data.getStringExtra("err")) + ","
+                    + data.getBooleanExtra("web", false) + ")";
+            web.evaluateJavascript(js, null);
+            return;
+        }
         if (req == FILE_REQ && fileCallback != null) {
             fileCallback.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(res, data));
             fileCallback = null;
@@ -349,6 +360,22 @@ public class MainActivity extends Activity {
                 }
             } catch (Exception e) {
                 return "";
+            }
+        }
+
+        /** Videoyu yerel oynatıcıda (ExoPlayer) açar. */
+        @JavascriptInterface
+        public boolean playNative(String json) {
+            try {
+                JSONObject o = new JSONObject(json);
+                PlayerActivity.pendingItems = o.getJSONArray("items");
+                PlayerActivity.pendingIndex = o.optInt("index", 0);
+                PlayerActivity.pendingStart = o.optLong("start", 0);
+                PlayerActivity.pendingAutoNext = o.optBoolean("autoNext", true);
+                runOnUiThread(() -> startActivityForResult(new Intent(MainActivity.this, PlayerActivity.class), PLAYER_REQ));
+                return true;
+            } catch (Exception e) {
+                return false;
             }
         }
 
