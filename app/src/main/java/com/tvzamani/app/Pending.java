@@ -9,7 +9,7 @@ final class Pending {
     static long start;
     static boolean autoNext = true;
     static boolean softwareDecoder;
-    static String ua = "VLC/3.0.20 LibVLC/3.0.20";
+    static volatile String ua = "TVZamani/1.0 (Android TV)";
 
     private Pending() { }
 

@@ -301,7 +301,7 @@ const norm=s=>String(s||'').toLocaleLowerCase('tr').replace(/ı/g,'i').normalize
 const hostOf=u=>{try{return new URL(u).hostname}catch(e){return'Hesap'}};
 
 const LS='tvkutu_v1';
-const DEF={engine:'auto',liveFormat:'m3u8',buffer:30,aspect:'contain',cacheHours:12,proxy:'',proxyStreams:false,hideAdult:true,autoplayNext:true,resume:true,cardView:'auto',extPlayer:'internal',appPlayer:'exo',decoder:'hw',ua:'vlc'};
+const DEF={engine:'auto',liveFormat:'m3u8',buffer:30,aspect:'contain',cacheHours:12,proxy:'',proxyStreams:false,hideAdult:true,autoplayNext:true,resume:true,cardView:'auto',extPlayer:'internal',appPlayer:'exo',decoder:'hw',ua:'app'};
 const COLORS=['#6c63ff','#e5484d','#f5a524','#3ecf8e','#00a2ff','#d14fd1','#ff7a45','#7c8798'];
 const TYPE={xtream:'Xtream Codes',m3u:'M3U Link',file:'M3U Dosya'};
 const MODE={live:'Canlı',movie:'Film',series:'Dizi'};
@@ -314,7 +314,7 @@ const canQR=()=>location.protocol.startsWith('http')&&!IN_APP;
 
 const OPTS={
  appPlayer:[['exo','ExoPlayer (TiviMate tarzı)'],['vlc','VLC (yerleşik)'],['system','Sistem oynatıcısı'],['web','HLS oynatıcı (web)']],
- ua:[['vlc','VLC'],['okhttp','okhttp (Android)'],['chrome','Chrome (telefon)'],['exo','ExoPlayer'],['smarters','IPTV Smarters'],['lavf','FFmpeg (Lavf)']],
+ ua:[['app','TV Zamanı (önerilen)'],['vlc','VLC'],['okhttp','okhttp (Android)'],['chrome','Chrome (telefon)'],['exo','ExoPlayer'],['smarters','IPTV Smarters'],['lavf','FFmpeg (Lavf)']],
  decoder:[['hw','Donanım (önerilen)'],['sw','Yazılım (uyumluluk)']],
  extPlayer:[['internal','Dahili oynatıcı'],['vlc','VLC'],['mx','MX Player'],['just','Just Player'],['mpv','mpv'],['ask','Harici (her seferinde seç)']],
  cardView:[['auto','Otomatik'],['poster','Afiş'],['logo','Logo']],
@@ -329,7 +329,7 @@ const OPTS={
  proxyStreams:[[false,'Hayır'],[true,'Evet']]
 };
 const LABEL={appPlayer:'Oynatıcı (uygulamada)',decoder:'Kod çözücü (ExoPlayer / VLC)',ua:'İstemci kimliği (User-Agent)',extPlayer:'Harici oynatıcı (Android)',cardView:'Kart görünümü',engine:'Oynatıcı motoru',liveFormat:'Canlı yayın formatı (Xtream)',buffer:'Tampon süresi',aspect:'Varsayılan görüntü oranı',resume:'Kaldığı yerden devam',autoplayNext:'Sonraki bölümü otomatik oynat',hideAdult:'Yetişkin kategorileri',cacheHours:'Liste önbelleği',proxyStreams:"Proxy'yi yayınlara da uygula"};
-const UAMAP={vlc:'VLC/3.0.20 LibVLC/3.0.20',okhttp:'okhttp/4.12.0',chrome:'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',exo:'ExoPlayerLib/2.19.1',smarters:'IPTVSmartersPro',lavf:'Lavf/60.3.100'};
+const UAMAP={app:'TVZamani/1.0 (Android TV)',vlc:'VLC/3.0.20 LibVLC/3.0.20',okhttp:'okhttp/4.12.0',chrome:'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',exo:'ExoPlayerLib/2.19.1',smarters:'IPTVSmartersPro',lavf:'Lavf/60.3.100'};
 const optLabel=(k,v)=>(OPTS[k].find(o=>o[0]===v)||[0,String(v)])[1];
 
 const I={
@@ -409,6 +409,7 @@ function splitUrlHdr(line){
  const h={};line.slice(i+1).split('&').forEach(p=>{const j=p.indexOf('=');if(j<1)return;const k=hdrName(p.slice(0,j));if(!k)return;let v=p.slice(j+1);try{v=decodeURIComponent(v)}catch(e){}h[k]=v});
  return{url:line.slice(0,i),h:Object.keys(h).length?h:null};
 }
+function applyUa(){try{if(IN_APP&&AndroidBridge.setUa)AndroidBridge.setUa(UAMAP[S().ua]||UAMAP.app)}catch(e){}}
 function parseM3U(txt){
  const out=[];let cur=null,n=0,liveN=0,hd=null;
  for(let line of txt.split(/\r?\n/)){
@@ -545,7 +546,7 @@ function clock(){const t=hhmm();$('#clock').textContent=t;$('#pClock').textConte
 
 /* ---------------- Liste yükleme ---------------- */
 async function loadSource(force){
- const src=activeSrc();RT.items=[];RT.vis=[];RT.info=null;RT.byId=new Map();renderHeader();
+ applyUa();const src=activeSrc();RT.items=[];RT.vis=[];RT.info=null;RT.byId=new Map();renderHeader();
  const g=$('#grid');
  if(!src){
   $('#side').innerHTML='';g.className='grid';
@@ -554,7 +555,7 @@ async function loadSource(force){
  }
  g.className='grid';g.innerHTML='<div class="loading"><i></i>Liste yükleniyor…</div>';$('#side').innerHTML='';
  const key='cache_'+src.id;const cached=await idb.get(key);
- let c=(!force&&cached&&Date.now()-cached.t<S().cacheHours*3600e3)?cached:null;
+ let c=(!force&&cached&&cached.ua===S().ua&&Date.now()-cached.t<S().cacheHours*3600e3)?cached:null;
  if(!c){
   try{
    let r;
@@ -562,7 +563,7 @@ async function loadSource(force){
    else if(src.type==='m3u')r={items:parseM3U(await xfetch(src.url))};
    else{const txt=await idb.get('file_'+src.id);if(!txt)throw new Error('M3U dosyası bulunamadı, hesabı düzenleyip dosyayı yeniden seç.');r={items:parseM3U(txt)}}
    if(!r.items.length)throw new Error('Listede oynatılabilir içerik bulunamadı.');
-   c={t:Date.now(),...r};idb.set(key,c);RT.seriesCache.clear();
+   c={t:Date.now(),ua:S().ua,...r};idb.set(key,c);RT.seriesCache.clear();
   }catch(e){
    if(activeSrc()!==src)return;
    if(cached){c=cached;toast('Güncellenemedi, kayıtlı liste gösteriliyor')}else return renderError(e);
@@ -883,6 +884,7 @@ function tabPlayer(b){
  $$('.cyc',b).forEach(btn=>btn.onclick=()=>{
   const k=btn.dataset.k,arr=OPTS[k],cur=S()[k],i=arr.findIndex(o=>o[0]===cur),nv=arr[(i+1)%arr.length][0];
   prof().settings[k]=nv;save();$('b',btn).textContent=optLabel(k,nv)+' ›';
+  if(k==='ua'){applyUa();toast('Kimlik değişti: liste bir sonraki açılışta yeniden yüklenecek')}
   if(k==='hideAdult'&&RT.items.length)applyVis(false);
   if(k==='cardView'&&RT.items.length)renderGrid();
  });
@@ -1130,7 +1132,7 @@ function play(it,list,opt={}){
   const h=prof().hist[favKey(it)];
   const start=(!opt.fromStart&&S().resume&&h&&h.pos>30&&(!h.dur||h.pos<h.dur-60))?Math.floor(h.pos*1000):0;
   NP.list=sub;NP.ret=document.activeElement;saveHist(it);
-  const ok=AndroidBridge.playNative(JSON.stringify({engine:eng,decoder:S().decoder,ua:UAMAP[S().ua]||UAMAP.vlc,index:idx,start,autoNext:S().autoplayNext,
+  const ok=AndroidBridge.playNative(JSON.stringify({engine:eng,decoder:S().decoder,ua:UAMAP[S().ua]||UAMAP.app,index:idx,start,autoNext:S().autoplayNext,
    items:sub.map(x=>({url:x.xt&&x.kind==='live'?x.url.replace(/\.(m3u8|ts)$/i,'.'+S().liveFormat):x.url,title:(x.kind==='live'&&x.num?x.num+' · ':'')+x.name,live:x.kind==='live',num:+x.num||0,h:x.h||null}))}));
   if(ok)return;
  }

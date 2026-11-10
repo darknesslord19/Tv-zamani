@@ -12,6 +12,8 @@ final class Diag {
     interface Done { void result(String text); }
 
     private static final String[][] UAS = {
+            {"TV Zamanı", "TVZamani/1.0 (Android TV)"},
+            {"TvKutu", "TvKutu/0.6 (Android TV)"},
             {"VLC", "VLC/3.0.20 LibVLC/3.0.20"},
             {"okhttp", "okhttp/4.12.0"},
             {"Chrome", "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"},

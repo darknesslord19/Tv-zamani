@@ -408,7 +408,7 @@ public class MainActivity extends Activity {
                         c.setInstanceFollowRedirects(false);
                         c.setConnectTimeout(10000);
                         c.setReadTimeout(10000);
-                        c.setRequestProperty("User-Agent", hh.containsKey("User-Agent") ? hh.get("User-Agent") : "VLC/3.0.20 LibVLC/3.0.20");
+                        c.setRequestProperty("User-Agent", hh.containsKey("User-Agent") ? hh.get("User-Agent") : Pending.ua);
                         for (java.util.Map.Entry<String, String> e : hh.entrySet())
                             if (!e.getKey().equals("User-Agent")) c.setRequestProperty(e.getKey(), e.getValue());
                         code = c.getResponseCode();
@@ -444,6 +444,11 @@ public class MainActivity extends Activity {
                 final String js = "window.resolved&&window.resolved(" + id + "," + JSONObject.quote(res.toString()) + ")";
                 runOnUiThread(() -> web.evaluateJavascript(js, null));
             }).start();
+        }
+
+        @JavascriptInterface
+        public void setUa(String ua) {
+            if (ua != null && !ua.trim().isEmpty()) Pending.ua = ua.trim();
         }
 
         @JavascriptInterface

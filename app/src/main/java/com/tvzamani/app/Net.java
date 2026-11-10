@@ -87,10 +87,12 @@ final class Net {
                 if (k == null || e.getValue() == null) continue;
                 String kl = k.toLowerCase(Locale.ROOT);
                 if (kl.equals("origin") || kl.equals("referer") || kl.startsWith("sec-")
-                        || kl.equals("accept-encoding") || kl.equals("host")) continue;
+                        || kl.equals("accept-encoding") || kl.equals("host") || kl.equals("user-agent")) continue;
                 c.setRequestProperty(k, e.getValue());
             }
         }
+        // Liste ve yayın aynı istemci kimliğiyle istenir (bazı sunucular linki kimliğe bağlar)
+        c.setRequestProperty("User-Agent", Pending.ua);
         // Sıkıştırmasız iste: içerik uzunluğu doğru kalsın (mp4 sarma için önemli)
         c.setRequestProperty("Accept-Encoding", "identity");
 
