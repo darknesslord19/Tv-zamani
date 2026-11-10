@@ -95,6 +95,58 @@ main{overflow-y:auto;min-height:0;padding:8px 10px 3em;scrollbar-width:thin}
 .loading i{width:42px;height:42px;border:4px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:r 1s linear infinite}
 @keyframes r{to{transform:rotate(360deg)}}
 
+/* ---------- Vitrin (ikinci ana sayfa) ---------- */
+#app:not(.vitrin){grid-template-rows:auto 1fr}
+#app.vitrin{grid-template-rows:auto auto 1fr}
+#vnav{display:none;gap:.5em;padding:0 2.2em .7em;overflow-x:auto;scrollbar-width:none}
+#vnav::-webkit-scrollbar{display:none}
+#app.vitrin #vnav{display:flex}
+.vtab{flex:none;padding:.5em 1.2em;border-radius:999px;background:var(--panel);border:2px solid transparent;font-weight:700;color:var(--muted)}
+.vtab.on{background:var(--accent);color:#fff}
+.vtab:focus,.vtab:hover{border-color:#fff}
+#home{display:none}
+#app.vitrin.ishome #home{display:block}
+#app.vitrin.ishome #grid,#app.vitrin.ishome #sentinel,#app.vitrin.ishome aside{display:none}
+#app.vitrin .body{grid-template-columns:1fr}
+#app.vitrin:not(.ishome) .body{grid-template-rows:auto 1fr;gap:.4em}
+#app.vitrin:not(.ishome) aside{display:flex;overflow-x:auto;overflow-y:hidden;gap:.4em;padding:2px 2px .4em}
+#app.vitrin .modes{display:none}
+#app.vitrin:not(.ishome) .cat{width:auto;flex:none;margin:0;padding:.5em .9em}
+.hero{position:relative;min-height:clamp(220px,34vh,380px);border-radius:18px;overflow:hidden;margin:0 0 1.2em;display:flex;align-items:flex-end;background:var(--panel)}
+.hbg{position:absolute;inset:0;background-size:cover;background-position:center 25%;filter:blur(26px) brightness(.5);transform:scale(1.25)}
+.hbg.sharp{filter:brightness(.62);transform:none}
+.hshade{position:absolute;inset:0;background:linear-gradient(0deg,rgba(11,13,18,.95),rgba(11,13,18,.15) 60%,transparent),linear-gradient(90deg,rgba(11,13,18,.85),transparent 70%)}
+.hinfo{position:relative;padding:1.6em 1.8em;max-width:42em;display:flex;flex-direction:column;gap:.5em}
+.hk{font-size:.75em;letter-spacing:.14em;font-weight:800;color:var(--accent2)}
+.ht{font-size:2.1em;font-weight:800;line-height:1.05;letter-spacing:-.02em}
+.hm{color:#c9cfdf;font-weight:600}
+.hp{margin:0;color:#c9cfdf;font-size:.95em;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.hposter{position:absolute;right:1.8em;bottom:1.2em;height:82%;aspect-ratio:2/3;border-radius:12px;object-fit:cover;box-shadow:0 10px 30px rgba(0,0,0,.55)}
+.vsec{margin:0 0 1.1em}
+.vsec h2{margin:.2em 0 .4em;font-size:1.15em;display:flex;align-items:baseline;gap:.6em}
+.vsec h2 small{color:var(--muted);font-weight:600;font-size:.75em}
+.vrow{display:flex;gap:.9em;overflow-x:auto;padding:.7em .5em .9em;scrollbar-width:none}
+.vrow::-webkit-scrollbar{display:none}
+.vcard{flex:none;width:clamp(120px,10.5vw,180px);text-align:left}
+.vcard.live{width:clamp(150px,13vw,230px)}
+.vp{position:relative;aspect-ratio:2/3;border-radius:12px;overflow:hidden;background:var(--panel);border:3px solid transparent;transition:transform .15s}
+.vcard.live .vp{aspect-ratio:16/10;background:linear-gradient(160deg,#1d2230,#12151d)}
+.vp img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.vcard.live .vp img{object-fit:contain;padding:12%}
+.vp .ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:.6em;text-align:center;font-weight:700;color:var(--muted);font-size:.9em}
+.vcard:focus .vp,.vcard:hover .vp{border-color:#fff;transform:scale(1.05);box-shadow:0 12px 30px rgba(108,99,255,.35)}
+.vt{margin-top:.45em;font-weight:700;font-size:.88em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vm{color:var(--muted);font-size:.78em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vb{position:absolute;top:.4em;right:.4em;padding:.15em .5em;border-radius:6px;font-size:.7em;font-weight:800}
+.vb.new{background:var(--accent);color:#fff}
+.vb.ok{background:var(--ok);color:#000}
+@media (max-width:760px){
+ #vnav{padding:0 .8em .5em}
+ .vcard{width:112px}.vcard.live{width:140px}
+ .hposter{display:none}.ht{font-size:1.5em}.hinfo{padding:1.1em}
+ .vcard:focus .vp,.vcard:hover .vp{transform:none}
+}
+
 /* ---------- Modal ---------- */
 #modal{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:center;justify-content:center;z-index:100;padding:1em}
 #modal.open{display:flex}
@@ -228,9 +280,10 @@ button.li:focus,button.li:hover{border-color:#fff}
   <button class="hbtn focusable" id="btnSettings">Ayarlar</button>
   <div class="clock" id="clock">--:--</div>
  </header>
+ <div id="vnav"></div>
  <div class="body">
   <aside id="side"></aside>
-  <main id="main"><div class="grid" id="grid"></div><div id="sentinel" style="height:1px"></div></main>
+  <main id="main"><div id="home"></div><div class="grid" id="grid"></div><div id="sentinel" style="height:1px"></div></main>
  </div>
 </div>
 
@@ -301,7 +354,7 @@ const norm=s=>String(s||'').toLocaleLowerCase('tr').replace(/ı/g,'i').normalize
 const hostOf=u=>{try{return new URL(u).hostname}catch(e){return'Hesap'}};
 
 const LS='tvkutu_v1';
-const DEF={engine:'auto',liveFormat:'ts',buffer:30,aspect:'contain',cacheHours:12,proxy:'',proxyStreams:false,hideAdult:true,autoplayNext:true,resume:true,cardView:'poster',extPlayer:'internal',appPlayer:'exo',decoder:'hw',ua:'okhttp'};
+const DEF={engine:'auto',liveFormat:'ts',buffer:30,aspect:'contain',cacheHours:12,proxy:'',proxyStreams:false,hideAdult:true,autoplayNext:true,resume:true,cardView:'poster',extPlayer:'internal',appPlayer:'exo',decoder:'hw',ua:'okhttp',homeView:'classic',tmdbKey:''};
 const COLORS=['#6c63ff','#e5484d','#f5a524','#3ecf8e','#00a2ff','#d14fd1','#ff7a45','#7c8798'];
 const TYPE={xtream:'Xtream Codes',m3u:'M3U Link',file:'M3U Dosya'};
 const MODE={live:'Canlı',movie:'Film',series:'Dizi'};
@@ -313,6 +366,7 @@ const IN_APP=!!window.AndroidBridge;
 const canQR=()=>location.protocol.startsWith('http')&&!IN_APP;
 
 const OPTS={
+ homeView:[['classic','Klasik (kenar çubuğu)'],['vitrin','Vitrin (satırlı ana sayfa)']],
  appPlayer:[['exo','ExoPlayer (TiviMate tarzı)'],['vlc','VLC (yerleşik)'],['system','Sistem oynatıcısı'],['web','HLS oynatıcı (web)']],
  ua:[['app','TV Zamanı (önerilen)'],['vlc','VLC'],['okhttp','okhttp (Android)'],['chrome','Chrome (telefon)'],['exo','ExoPlayer'],['smarters','IPTV Smarters'],['lavf','FFmpeg (Lavf)']],
  decoder:[['hw','Donanım (önerilen)'],['sw','Yazılım (uyumluluk)']],
@@ -328,7 +382,7 @@ const OPTS={
  cacheHours:[[1,'1 saat'],[6,'6 saat'],[12,'12 saat'],[24,'1 gün'],[72,'3 gün']],
  proxyStreams:[[false,'Hayır'],[true,'Evet']]
 };
-const LABEL={appPlayer:'Oynatıcı (uygulamada)',decoder:'Kod çözücü (ExoPlayer / VLC)',ua:'İstemci kimliği (User-Agent)',extPlayer:'Harici oynatıcı (Android)',cardView:'Kart görünümü',engine:'Oynatıcı motoru',liveFormat:'Canlı yayın formatı (Xtream)',buffer:'Tampon süresi',aspect:'Varsayılan görüntü oranı',resume:'Kaldığı yerden devam',autoplayNext:'Sonraki bölümü otomatik oynat',hideAdult:'Yetişkin kategorileri',cacheHours:'Liste önbelleği',proxyStreams:"Proxy'yi yayınlara da uygula"};
+const LABEL={homeView:'Ana sayfa düzeni',appPlayer:'Oynatıcı (uygulamada)',decoder:'Kod çözücü (ExoPlayer / VLC)',ua:'İstemci kimliği (User-Agent)',extPlayer:'Harici oynatıcı (Android)',cardView:'Kart görünümü',engine:'Oynatıcı motoru',liveFormat:'Canlı yayın formatı (Xtream)',buffer:'Tampon süresi',aspect:'Varsayılan görüntü oranı',resume:'Kaldığı yerden devam',autoplayNext:'Sonraki bölümü otomatik oynat',hideAdult:'Yetişkin kategorileri',cacheHours:'Liste önbelleği',proxyStreams:"Proxy'yi yayınlara da uygula"};
 const UAMAP={app:'TVZamani/1.0 (Android TV)',vlc:'VLC/3.0.20 LibVLC/3.0.20',okhttp:'okhttp/4.12.0',chrome:'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',exo:'ExoPlayerLib/2.19.1',smarters:'IPTVSmartersPro',lavf:'Lavf/60.3.100'};
 const optLabel=(k,v)=>(OPTS[k].find(o=>o[0]===v)||[0,String(v)])[1];
 
@@ -379,11 +433,11 @@ const S=()=>({...DEF,...((prof()||{}).settings||{})});
 const activeSrc=()=>{const p=prof();return p&&(p.sources.find(s=>s.id===p.active)||p.sources[0])};
 const newProfile=(name,color)=>({id:uid(),name,color,pin:'',sources:[],active:null,fav:{},hist:{},settings:{...DEF}});
 const favKey=it=>((activeSrc()||{}).id||'x')+'|'+it.id;
-const slim=it=>{const o={};['id','kind','name','logo','url','group','num','xt','seriesId','parent','rating','sid'].forEach(k=>{if(it[k]!=null&&it[k]!=='')o[k]=it[k]});return o};
+const slim=it=>{const o={};['id','kind','name','logo','url','group','num','xt','seriesId','parent','rating','sid','h','ad'].forEach(k=>{if(it[k]!=null&&it[k]!=='')o[k]=it[k]});return o};
 
 /* ---------------- Çalışma durumu ---------------- */
 const NP={list:[],ret:null};
-const RT={items:[],vis:[],byId:new Map(),groups:[],mode:'live',cat:'__all',catKey:'__all',search:'',list:[],rendered:0,info:null,seriesCache:new Map(),posterCats:new Set((()=>{try{return JSON.parse(localStorage.getItem(LS+'_pc'))||[]}catch(e){return[]}})())};
+const RT={items:[],vis:[],byId:new Map(),groups:[],mode:'live',cat:'__all',catKey:'__all',search:'',home:true,vrows:[],list:[],rendered:0,info:null,seriesCache:new Map(),posterCats:new Set((()=>{try{return JSON.parse(localStorage.getItem(LS+'_pc'))||[]}catch(e){return[]}})())};
 const P={item:null,list:[],idx:0,hls:null,ts:null,tried:new Set(),uiT:0};
 const TR={peer:null,scope:'profile',pendingCode:''};
 const vid=$('#vid');
@@ -449,8 +503,8 @@ async function loadXtream(src){
  const srt=(arr,cats)=>{const o=ord(cats);return arr.sort((a,b)=>(o[a.category_id]??1e9)-(o[b.category_id]??1e9))};
  const L=nm(lc),V=nm(vc),SC=nm(sc),items=[];
  srt(ls,lc).forEach((s,i)=>items.push({id:'l'+s.stream_id,kind:'live',name:s.name||'Kanal',logo:s.stream_icon||'',group:L[s.category_id]||'Diğer',num:+s.num||i+1,url:`${base}/live/${path}/${s.stream_id}.m3u8`,xt:1}));
- srt(vs,vc).forEach(s=>items.push({id:'v'+s.stream_id,kind:'movie',name:s.name||'Film',logo:s.stream_icon||'',group:V[s.category_id]||'Diğer',rating:s.rating||'',sid:s.stream_id,url:`${base}/movie/${path}/${s.stream_id}.${s.container_extension||'mp4'}`,xt:1}));
- srt(ss,sc).forEach(s=>items.push({id:'s'+s.series_id,kind:'series',name:s.name||'Dizi',logo:s.cover||'',group:SC[s.category_id]||'Diğer',rating:s.rating||'',seriesId:s.series_id,xt:1}));
+ srt(vs,vc).forEach(s=>items.push({id:'v'+s.stream_id,kind:'movie',name:s.name||'Film',logo:s.stream_icon||'',group:V[s.category_id]||'Diğer',rating:s.rating||'',ad:+s.added||0,sid:s.stream_id,url:`${base}/movie/${path}/${s.stream_id}.${s.container_extension||'mp4'}`,xt:1}));
+ srt(ss,sc).forEach(s=>items.push({id:'s'+s.series_id,kind:'series',name:s.name||'Dizi',logo:s.cover||'',group:SC[s.category_id]||'Diğer',rating:s.rating||'',ad:+s.last_modified||0,seriesId:s.series_id,xt:1}));
  return{items,info:{status:ui.status,exp:+ui.exp_date||0,active:ui.active_cons,max:ui.max_connections}};
 }
 async function loadSeries(it){
@@ -487,7 +541,7 @@ function showProfiles(){
 function enter(p){
  profManage=false;DB.current=p.id;save();
  $('#profiles').hidden=true;$('#app').hidden=false;
- RT.mode='live';RT.cat=RT.catKey='__all';RT.search='';$('#search').value='';RT.seriesCache.clear();
+ RT.mode='live';RT.home=true;RT.cat=RT.catKey='__all';RT.search='';$('#search').value='';RT.seriesCache.clear();
  renderHeader();loadSource(false);
  if(TR.pendingCode)setTimeout(()=>openSettings('aktarim'),400);
 }
@@ -546,7 +600,7 @@ function clock(){const t=hhmm();$('#clock').textContent=t;$('#pClock').textConte
 
 /* ---------------- Liste yükleme ---------------- */
 async function loadSource(force){
- applyUa();const src=activeSrc();RT.items=[];RT.vis=[];RT.info=null;RT.byId=new Map();renderHeader();
+ applyUa();const src=activeSrc();RT.items=[];RT.vis=[];RT.info=null;RT.byId=new Map();renderHeader();syncView();
  const g=$('#grid');
  if(!src){
   $('#side').innerHTML='';g.className='grid';
@@ -555,7 +609,7 @@ async function loadSource(force){
  }
  g.className='grid';g.innerHTML='<div class="loading"><i></i>Liste yükleniyor…</div>';$('#side').innerHTML='';
  const key='cache_'+src.id;const cached=await idb.get(key);
- let c=(!force&&cached&&cached.ua===S().ua&&Date.now()-cached.t<S().cacheHours*3600e3)?cached:null;
+ let c=(!force&&cached&&cached.ua===S().ua&&cached.v===2&&Date.now()-cached.t<S().cacheHours*3600e3)?cached:null;
  if(!c){
   try{
    let r;
@@ -563,7 +617,7 @@ async function loadSource(force){
    else if(src.type==='m3u')r={items:parseM3U(await xfetch(src.url))};
    else{const txt=await idb.get('file_'+src.id);if(!txt)throw new Error('M3U dosyası bulunamadı, hesabı düzenleyip dosyayı yeniden seç.');r={items:parseM3U(txt)}}
    if(!r.items.length)throw new Error('Listede oynatılabilir içerik bulunamadı.');
-   c={t:Date.now(),ua:S().ua,...r};idb.set(key,c);RT.seriesCache.clear();
+   c={t:Date.now(),ua:S().ua,v:2,...r};idb.set(key,c);RT.seriesCache.clear();
   }catch(e){
    if(activeSrc()!==src)return;
    if(cached){c=cached;toast('Güncellenemedi, kayıtlı liste gösteriliyor')}else return renderError(e);
@@ -579,7 +633,7 @@ function applyVis(resetCat){
  const kinds=['live','movie','series'].filter(k=>RT.vis.some(i=>i.kind===k));
  if(!kinds.includes(RT.mode))RT.mode=kinds[0]||'live';
  if(resetCat||RT.catKey[0]==='g'){RT.cat=RT.catKey='__all'}
- buildGroups();renderSidebar();renderGrid();
+ buildGroups();renderSidebar();renderGrid();syncView(true);
 }
 function buildGroups(){const m=new Map();for(const i of RT.vis)if(i.kind===RT.mode)m.set(i.group,(m.get(i.group)||0)+1);RT.groups=[...m]}
 function renderError(e){
@@ -635,7 +689,7 @@ function cardHTML(it,i){
  const badge=fav?'<span class="fav-badge">★</span>':'';
  const prog=pct>1?`<div class="cprog"><i style="width:${pct}%"></i></div>`:'';
  if(it.kind==='live')return `<button class="card livec focusable" data-i="${i}">${it.num?`<span class="num">${it.num}</span>`:''}${it.logo?`<img loading="lazy" src="${esc(it.logo)}" alt="" onload="posterChk(this)" onerror="this.remove()">`:''}<div class="cap">${esc(it.name)}</div>${prog}${badge}</button>`;
- return `<button class="card focusable" data-i="${i}"><div class="ph">${esc(it.name)}</div>${it.logo?`<img loading="lazy" src="${esc(it.logo)}" alt="" onerror="this.remove()">`:''}<div class="cap">${esc(it.name)}</div>${prog}${badge}</button>`;
+ return `<button class="card focusable" data-i="${i}"><div class="ph">${esc(it.name)}</div>${it.logo?`<img loading="lazy" src="${esc(it.logo)}" alt="" onerror="imgErr(this)">`:''}<div class="cap">${esc(it.name)}</div>${prog}${badge}</button>`;
 }
 const gridKey=()=>((activeSrc()||{}).id||'')+'|'+(RT.search?'?':RT.mode+'|'+RT.catKey);
 function posterChk(img){
@@ -658,7 +712,7 @@ function renderGrid(){
 function renderMore(){
  const L=RT.list,end=Math.min(L.length,RT.rendered+60);let h='';
  for(let i=RT.rendered;i<end;i++)h+=cardHTML(L[i],i);
- $('#grid').insertAdjacentHTML('beforeend',h);RT.rendered=end;
+ $('#grid').insertAdjacentHTML('beforeend',h);RT.rendered=end;tmdbScan($('#grid'));
 }
 function fill(){
  let n=0;
@@ -682,6 +736,135 @@ function openItem(it,list){
  if(it.kind==='series')return seriesDetail(it);
  if(it.kind==='episode'||RT.catKey==='__resume')return play(it,[it]);
  movieDetail(it);
+}
+
+/* ---------------- TMDB (eksik afişler, özet, puan) ---------------- */
+const TM={mem:{},pend:{},loaded:false,bad:false,n:0,w:[]};
+const tmKey=()=>String(S().tmdbKey||'').trim();
+async function tmLoad(){if(TM.loaded)return;TM.loaded=true;try{TM.mem=(await idb.get('tmdb_cache'))||{}}catch(e){}}
+let tmSaveT;function tmSave(){clearTimeout(tmSaveT);tmSaveT=setTimeout(()=>{try{idb.set('tmdb_cache',TM.mem)}catch(e){}},2500)}
+function cleanTitle(n){
+ let s=String(n||'').trim(),y='';
+ const m=s.match(/[(\[]((?:19|20)\d{2})[)\]]/)||s.match(/\s((?:19|20)\d{2})\s*$/);if(m)y=m[1];
+ s=s.replace(/^\s*[\[|(]?\s*[A-ZÇĞİÖŞÜ]{2,3}\s*[\]|)]\s*[-:|]?\s*/,'').replace(/^\s*[A-Z]{2,3}\s*[:|-]\s+/,'');
+ const cut=s.search(/[(\[]/);if(cut>2)s=s.slice(0,cut);
+ s=s.replace(/\b(4K|UHD|FHD|HD|1080p|720p|2160p|HEVC|H\.?26[45]|x26[45]|DUAL|TR DUBLAJ|DUBLAJ|ALTYAZILI|MULTI)\b/gi,'').replace(/\s+((?:19|20)\d{2})\s*$/,'').replace(/[\s\-–|:._]+$/,'').replace(/\s{2,}/g,' ').trim();
+ return{t:s||String(n||'').trim(),y};
+}
+async function tmGet(path,params){
+ const key=tmKey(),bearer=/^eyJ/.test(key);
+ const u=new URL('https://api.themoviedb.org/3/'+path);
+ Object.entries(params||{}).forEach(([k,v])=>{if(v!=null&&v!=='')u.searchParams.set(k,v)});
+ if(!bearer)u.searchParams.set('api_key',key);
+ const r=await fetch(u.toString(),bearer?{headers:{Authorization:'Bearer '+key,accept:'application/json'}}:{});
+ if(r.status===401||r.status===403){const e=new Error('auth');e.auth=true;throw e}
+ if(!r.ok)return null;return r.json();
+}
+async function tmSlot(f){if(TM.n>=3)await new Promise(r=>TM.w.push(r));TM.n++;try{return await f()}finally{TM.n--;const r=TM.w.shift();r&&r()}}
+async function tmFetch(kind,ct){
+ const ep=kind==='series'?'search/tv':'search/movie',yp=kind==='series'?'first_air_date_year':'year';
+ const base={query:ct.t,language:'tr-TR',include_adult:'false'};
+ let d=await tmGet(ep,{...base,[yp]:ct.y}),res=(d&&d.results)||[];
+ if(!res.length&&ct.y){d=await tmGet(ep,base);res=(d&&d.results)||[]}
+ const m=res.find(x=>x.poster_path)||res[0];if(!m)return null;
+ return{poster:m.poster_path?'https://image.tmdb.org/t/p/w342'+m.poster_path:'',backdrop:m.backdrop_path?'https://image.tmdb.org/t/p/w780'+m.backdrop_path:'',
+  plot:m.overview||'',rating:m.vote_average?m.vote_average.toFixed(1):'',year:(m.release_date||m.first_air_date||'').slice(0,4)};
+}
+async function tmdbInfo(it){
+ if(!tmKey()||TM.bad||!it||(it.kind!=='movie'&&it.kind!=='series'))return null;
+ await tmLoad();
+ const ct=cleanTitle(it.name),ck=(it.kind==='series'?'t:':'m:')+norm(ct.t)+'|'+ct.y;
+ const c=TM.mem[ck];
+ if(c)return c.miss?(Date.now()-c.t>3*864e5?null:null):c;
+ if(TM.pend[ck])return TM.pend[ck];
+ return TM.pend[ck]=tmSlot(()=>tmFetch(it.kind,ct)).then(r=>{TM.mem[ck]=r||{miss:1,t:Date.now()};tmSave();return r},e=>{if(e.auth&&!TM.bad){TM.bad=true;toast('TMDB anahtarı geçersiz — Ayarlar > Oynatıcı bölümünden kontrol et')}return null}).finally(()=>{delete TM.pend[ck]});
+}
+function itemOfEl(el){
+ if(el.dataset.i!=null)return RT.list[+el.dataset.i];
+ if(el.dataset.r!=null){const r=RT.vrows[+el.dataset.r];return r&&r.items[+el.dataset.c]}
+}
+function tmdbScan(root){
+ if(!tmKey()||TM.bad||!root)return;
+ $$('.card:not(.livec):not([data-tm]),.vcard:not(.live):not([data-tm])',root).forEach(el=>{
+  if($('img',el))return;const it=itemOfEl(el);if(!it||(it.kind!=='movie'&&it.kind!=='series'))return;
+  el.dataset.tm=1;
+  tmdbInfo(it).then(i=>{
+   if(!i||!i.poster||!document.contains(el)||$('img',el))return;
+   const im=document.createElement('img');im.alt='';im.loading='lazy';im.src=i.poster;im.onerror=()=>im.remove();
+   const ph=$('.ph',el);ph?ph.after(im):el.prepend(im);
+  }).catch(()=>{});
+ });
+}
+function imgErr(img){
+ const c=img.closest('.card,.vcard');img.remove();
+ if(c&&!c.classList.contains('livec')&&!c.classList.contains('live')){delete c.dataset.tm;tmdbScan(c.parentNode)}
+}
+
+/* ---------------- Vitrin: ikinci ana sayfa ---------------- */
+function itemWatched(it){const h=prof().hist[favKey(it)];return !!(h&&h.dur&&h.pos>=h.dur*.95)}
+function itemProg(it){const h=prof().hist[favKey(it)];return h&&h.dur&&h.pos>30?Math.min(100,h.pos/h.dur*100):0}
+function vcardHTML(it,ri,ci,row){
+ const live=it.kind==='live',ct=live?{t:it.name,y:''}:cleanTitle(it.name),pr=itemProg(it),seen=!live&&itemWatched(it);
+ let meta='';
+ if(row.prog){const h=prof().hist[favKey(it)];meta=h&&h.dur?Math.max(1,Math.round((h.dur-h.pos)/60))+' dk kaldı':(it.group||'')}
+ else if(live)meta=it.group||'';
+ else meta=[ct.y,+it.rating>0?'★ '+(+it.rating).toFixed(1):''].filter(Boolean).join(' · ')||it.group||'';
+ const img=it.logo?`<img loading="lazy" src="${esc(it.logo)}" alt="" onerror="imgErr(this)">`:'';
+ return `<button class="vcard focusable${live?' live':''}" data-r="${ri}" data-c="${ci}" aria-label="${esc(ct.t)}"><div class="vp"><div class="ph">${esc(ct.t)}</div>${img}${row.isNew?'<span class="vb new">YENİ</span>':seen?'<span class="vb ok">✓</span>':''}${pr>1?`<div class="cprog"><i style="width:${pr}%"></i></div>`:''}</div><div class="vt">${esc(ct.t)}</div><div class="vm">${esc(meta)}</div></button>`;
+}
+function renderHome(){
+ const home=$('#home'),m=$('#main'),st=m.scrollTop;
+ if(!RT.vis.length){home.innerHTML='';RT.vrows=[];return}
+ const p=prof(),src=activeSrc(),rows=[];
+ const add=(t,items,o={})=>{if(items&&items.length>=(o.min||1))rows.push({t,items:items.slice(0,30),prog:o.prog,isNew:o.isNew})};
+ add('Devam et',resumeList(),{prog:true});
+ add('Favoriler',Object.entries(p.fav).filter(([k])=>k.startsWith(src.id+'|')).map(([,v])=>RT.byId.get(v.id)||v));
+ const rec=k=>{const a=RT.vis.filter(i=>i.kind===k);return a.some(i=>i.ad)?a.slice().sort((x,y)=>(y.ad||0)-(x.ad||0)):a.slice().reverse()};
+ const nm=rec('movie'),ns=rec('series');
+ add('Yeni eklenen filmler',nm,{isNew:true});
+ add('Yeni eklenen diziler',ns,{isNew:true});
+ add('En yüksek puanlı filmler',RT.vis.filter(i=>i.kind==='movie'&&+i.rating>0).sort((a,b)=>+b.rating-+a.rating),{min:8});
+ const grp=(k,n)=>{const g=new Map();RT.vis.forEach(i=>{if(i.kind===k){let a=g.get(i.group);if(!a)g.set(i.group,a=[]);a.push(i)}});return[...g].sort((a,b)=>b[1].length-a[1].length).slice(0,n)};
+ grp('movie',6).forEach(([g,a])=>add(g,a));
+ grp('series',3).forEach(([g,a])=>add(g+' · Dizi',a));
+ add('Canlı TV',RT.vis.filter(i=>i.kind==='live'));
+ RT.vrows=rows;
+ const pool=nm.slice(0,12).concat(ns.slice(0,12)).filter(i=>i.logo);
+ const hero=pool.length?pool[new Date().getDate()%pool.length]:(rows[0]&&rows[0].items[0]);
+ let h='';
+ if(hero){
+  const ct=cleanTitle(hero.name),meta=[ct.y,+hero.rating>0?'★ '+(+hero.rating).toFixed(1):'',hero.group].filter(Boolean).join(' · ');
+  h+=`<div class="hero" id="hero"><div class="hbg" id="hBg"${hero.logo?` style="background-image:url('${esc(hero.logo)}')"`:''}></div>${hero.logo?`<img class="hposter" id="hPoster" src="${esc(hero.logo)}" alt="" onerror="this.remove()">`:''}<div class="hshade"></div><div class="hinfo"><div class="hk">ÖNE ÇIKAN</div><div class="ht">${esc(ct.t)}</div><div class="hm" id="hMeta">${esc(meta)}</div><p class="hp" id="hPlot"></p><div class="row"><button class="btn primary focusable" id="hPlay">▶ Oynat</button><button class="btn focusable" id="hInfo">Detay</button></div></div></div>`;
+ }
+ rows.forEach((r,ri)=>{h+=`<section class="vsec"><h2>${esc(r.t)}<small>${r.items.length}</small></h2><div class="vrow">${r.items.map((it,ci)=>vcardHTML(it,ri,ci,r)).join('')}</div></section>`});
+ home.innerHTML=h;m.scrollTop=st;
+ if(hero){
+  $('#hPlay').onclick=()=>hero.kind==='series'?openItem(hero,[hero]):play(hero,[hero]);
+  $('#hInfo').onclick=()=>openItem(hero,[hero]);
+  if(tmKey())tmdbInfo(hero).then(i=>{
+   if(!i||!$('#hero'))return;
+   if(i.plot)$('#hPlot').textContent=i.plot;
+   if(i.backdrop){const b=$('#hBg');b.style.backgroundImage=`url('${i.backdrop}')`;b.classList.add('sharp');const ps=$('#hPoster');ps&&ps.remove()}
+   if(i.rating&&!/★/.test($('#hMeta').textContent))$('#hMeta').textContent=[i.year,'★ '+i.rating,hero.group].filter(Boolean).join(' · ');
+  }).catch(()=>{});
+ }
+ tmdbScan(home);
+}
+function syncView(focus){
+ const v=S().homeView==='vitrin',app=$('#app');
+ app.classList.toggle('vitrin',v);
+ const home=v&&RT.home&&!RT.search&&RT.vis.length>0;
+ app.classList.toggle('ishome',home);
+ if(!v)return;
+ const kinds=['live','movie','series'].filter(k=>RT.vis.some(i=>i.kind===k));
+ const tabs=[['home','Ana sayfa']].concat(kinds.map(k=>[k,{live:'Canlı',movie:'Film',series:'Dizi'}[k]]));
+ $('#vnav').innerHTML=tabs.map(([k,l])=>`<button class="vtab focusable ${(home?k==='home':(!RT.search&&k===RT.mode))?'on':''}" data-vm="${k}">${l}</button>`).join('');
+ if(home){renderHome();if(focus)setTimeout(()=>{if(!modalOpen()&&!P.item){const f=$('#hPlay')||$('#home .vcard');f&&f.focus({preventScroll:true})}},80)}
+}
+function vmGo(k){
+ RT.search='';$('#search').value='';
+ if(k==='home')RT.home=true;else{RT.home=false;RT.mode=k;RT.cat=RT.catKey='__all';buildGroups();renderSidebar();renderGrid()}
+ syncView();const t=$(`#vnav [data-vm="${k}"]`);t&&t.focus({preventScroll:true});
 }
 
 /* ---------------- Oynatıcı seçici ---------------- */
@@ -756,11 +939,12 @@ function movieDetail(it){
  $('#dStart').onclick=()=>play(it,[it],{fromStart:true});
  $('#dPick').onclick=()=>playerChooser(it,[it]);
  $('#dFav').onclick=()=>{const on=toggleFav(it);$('#dFav').textContent=on?'★ Favoriden çıkar':'☆ Favoriye ekle'};
+ if(tmKey())tmdbInfo(it).then(i=>{if(!i)return;const pl=$('#dPlot');if(pl&&!pl.textContent&&i.plot)pl.textContent=i.plot;const mt=$('#dMeta');if(mt&&!mt.textContent)mt.textContent=' · '+[i.year,i.rating&&'★ '+i.rating].filter(Boolean).join(' · ');const d=$('.detail');if(d&&!$('.detail>img')&&i.poster){const im=document.createElement('img');im.src=i.poster;im.alt='';d.prepend(im)}}).catch(()=>{});
  const src=activeSrc();
  if(it.xt&&it.sid&&src&&src.type==='xtream'){
   xfetch(xt(src).api+'&action=get_vod_info&vod_id='+it.sid,true).then(d=>{
    const inf=d&&d.info;if(!inf||!$('#dPlot'))return;
-   $('#dPlot').textContent=inf.plot||inf.description||'';
+   if(inf.plot||inf.description)$('#dPlot').textContent=inf.plot||inf.description;
    const meta=[inf.genre,inf.releasedate||inf.release_date,inf.duration].filter(Boolean).join(' · ');
    if(meta)$('#dMeta').textContent=' · '+meta;
   }).catch(()=>{});
@@ -879,6 +1063,8 @@ function tabPlayer(b){
  const s=S();
  b.innerHTML=Object.keys(OPTS).map(k=>`<button class="li focusable cyc" data-k="${k}"><span class="grow">${LABEL[k]}</span><b class="v">${optLabel(k,s[k])} ›</b></button>`).join('')
  +`<div class="field"><label>CORS proxy (isteğe bağlı). Örn: https://proxy.ornek.com/?url={url} — {url} yoksa adres sona eklenir</label><input id="sProxy" value="${esc(s.proxy)}" placeholder="Boş bırak"></div>
+ <div class="field"><label>TMDB anahtarı (isteğe bağlı): listede afişi olmayan veya açılmayan filmlerin afişi, özeti ve puanı buradan tamamlanır. themoviedb.org hesabında Ayarlar > API bölümünden ücretsiz alınır (API Anahtarı ya da Okuma Erişim Jetonu).</label><input id="sTmdb" value="${esc(s.tmdbKey)}" placeholder="Boş bırak" autocomplete="off" autocapitalize="off"></div>
+ <div class="row"><button class="btn primary focusable" id="sTmdbSave">TMDB'yi kaydet ve dene</button></div>
  <div class="row"><button class="btn primary focusable" id="sProxySave">Proxy'yi kaydet</button><button class="btn focusable" id="sClear">Liste önbelleğini temizle</button><button class="btn focusable" id="sTest">Oynatıcıyı test et</button></div>`;
  $('#sTest').onclick=openTestBox;
  $$('.cyc',b).forEach(btn=>btn.onclick=()=>{
@@ -887,7 +1073,14 @@ function tabPlayer(b){
   if(k==='ua'){applyUa();toast('Kimlik değişti: liste bir sonraki açılışta yeniden yüklenecek')}
   if(k==='hideAdult'&&RT.items.length)applyVis(false);
   if(k==='cardView'&&RT.items.length)renderGrid();
+  if(k==='homeView'){RT.home=true;syncView(false)}
  });
+ $('#sTmdbSave').onclick=async()=>{
+  const v=$('#sTmdb').value.trim();prof().settings.tmdbKey=v;save();TM.bad=false;
+  if(!v){toast('TMDB kapatıldı');return}
+  try{const r=await tmGet('configuration',{});if(r&&r.images){toast('TMDB bağlandı ✓ Eksik afişler tamamlanacak');$$('[data-tm]').forEach(e=>delete e.dataset.tm);tmdbScan($('#app'));if($('#app').classList.contains('ishome'))renderHome()}else toast('TMDB yanıt vermedi, anahtarı kontrol et')}
+  catch(e){toast(e.auth?'TMDB anahtarı geçersiz':'TMDB’ye ulaşılamadı')}
+ };
  $('#sProxySave').onclick=()=>{prof().settings.proxy=$('#sProxy').value.trim();save();toast('Kaydedildi')};
  $('#sClear').onclick=async()=>{for(const x of prof().sources)await idb.del('cache_'+x.id);toast('Önbellek temizlendi');};
 }
@@ -1464,10 +1657,12 @@ function mainKey(k){
  }
  const a=document.activeElement;
  if(k==='back'){
+  if($('#home').contains(a)){const t=$('#vnav .vtab.on');t&&t.focus();return true}
   if($('#grid').contains(a)){const c=$('#side .cat.on')||$('#side .cat');c&&c.focus();return true}
   if(a===$('#search')){a.blur();return true}
   return false;
  }
+ if((k==='red'||k==='yellow')&&a&&a.closest&&a.closest('.vcard')){const c=a.closest('.vcard'),r=c.dataset.r,i=c.dataset.c,it=itemOfEl(c);if(it){toggleFav(it);renderHome();const n=$(`.vcard[data-r="${r}"][data-c="${i}"]`);n&&n.focus({preventScroll:true})}return true}
  if(k==='red'||k==='yellow'){const c=a&&a.closest&&a.closest('.card');if(c){toggleFav(RT.list[+c.dataset.i]);const n=refreshCard(+c.dataset.i);n&&n.focus()}return true}
  if(k==='chup'||k==='chdown'){const m=$('#main');m.scrollBy(0,(k==='chup'?-.8:.8)*m.clientHeight);return true}
  return false;
@@ -1520,7 +1715,8 @@ window.tvKey=c=>route(keyName({keyCode:c}));
 window.nativeDone=(i,pos,dur,err,next)=>{
  const it=NP.list[i];
  if(it){if(dur>0)saveHist(it,pos/1000,dur/1000);else saveHist(it)}
- if(!$('#app').hidden){renderSidebar();const r=NP.ret;if(r&&r.classList&&r.classList.contains('card')&&document.contains(r)){const n=refreshCard(+r.dataset.i);(n||r).focus()}}
+ if(!$('#app').hidden&&NP.ret&&NP.ret.classList&&NP.ret.classList.contains('vcard')){const r0=NP.ret.dataset.r,c0=NP.ret.dataset.c;renderSidebar();if($('#app').classList.contains('ishome')){renderHome();const n=$(`.vcard[data-r="${r0}"][data-c="${c0}"]`);n&&n.focus({preventScroll:true})}}
+ else if(!$('#app').hidden){renderSidebar();const r=NP.ret;if(r&&r.classList&&r.classList.contains('card')&&document.contains(r)){const n=refreshCard(+r.dataset.i);(n||r).focus()}}
  if(next&&it){next==='web'?play(it,NP.list,{web:true}):play(it,NP.list,{engine:next});return}
  if(err&&it)toast(err,'Başka oynatıcı',()=>playerChooser(it,NP.list));
 };
@@ -1588,7 +1784,10 @@ function init(){
  $('#btnRefresh').onclick=()=>{RT.seriesCache.clear();loadSource(true)};
  $('#btnSettings').onclick=()=>openSettings('hesaplar');
  $('#btnOpenUrl').onclick=openUrlBox;
- let st;$('#search').addEventListener('input',e=>{clearTimeout(st);st=setTimeout(()=>{RT.search=e.target.value.trim();renderGrid()},300)});
+ let st;$('#search').addEventListener('input',e=>{clearTimeout(st);st=setTimeout(()=>{RT.search=e.target.value.trim();renderGrid();syncView()},300)});
+ $('#vnav').addEventListener('click',e=>{const b=e.target.closest('[data-vm]');if(b)vmGo(b.dataset.vm)});
+ $('#home').addEventListener('click',e=>{const b=e.target.closest('.vcard');if(!b)return;const r=RT.vrows[+b.dataset.r];if(r)openItem(r.items[+b.dataset.c],r.items)});
+ $('#home').addEventListener('contextmenu',e=>{const b=e.target.closest('.vcard');if(!b)return;e.preventDefault();const it=itemOfEl(b);if(it){toggleFav(it);renderHome()}});
  $('#side').addEventListener('click',e=>{
   const m=e.target.closest('[data-mode]');
   if(m){RT.mode=m.dataset.mode;RT.cat=RT.catKey='__all';RT.search='';$('#search').value='';buildGroups();renderSidebar();renderGrid();return}
