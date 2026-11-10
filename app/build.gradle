@@ -10,8 +10,9 @@ android {
         applicationId 'com.tvzamani.app'
         minSdk 21
         targetSdk 34
-        versionCode 1
-        versionName '1.0'
+        // GitHub her derlemede numarayı artırır; yeni sürüm eskisinin üstüne kurulur
+        versionCode((System.getenv('GITHUB_RUN_NUMBER') ?: '1') as Integer)
+        versionName "1.0.${System.getenv('GITHUB_RUN_NUMBER') ?: '0'}"
     }
 
     // Sabit imza: güncellemeler eski sürümün üstüne kurulur, verilerin silinmez.

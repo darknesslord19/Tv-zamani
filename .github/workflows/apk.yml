@@ -5,6 +5,9 @@ on:
     branches: [ main, master ]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -28,3 +31,10 @@ jobs:
         with:
           name: TV-Zamani-APK
           path: TV-Zamani.apk
+
+      - name: Releases'a yükle
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="v1.0.${{ github.run_number }}"
+          gh release create "$TAG" TV-Zamani.apk --title "TV Zamanı $TAG" --notes "Otomatik derleme. Kurmak için TV-Zamani.apk dosyasını indir." --latest
