@@ -29,7 +29,7 @@ Klasörü Android Studio'da aç › **Build › Build APK(s)**. Çıktı: `app/b
 
 Sadece `web/index.html` dosyasını değiştir ve GitHub'a yükle — yeni APK otomatik derlenir.
 Yeni APK'yı eskisinin **üstüne kurabilirsin**, profillerin ve hesapların silinmez
-(uygulama sabit bir imza anahtarıyla — `app/tvzamani.keystore` — imzalanır; bu dosyayı silme).
+(uygulama hep aynı anahtarla — `app/testkey.p12`, AOSP test anahtarı — imzalanır; bu dosyayı silme).
 
 Sürüm numarasını artırmak istersen `app/build.gradle` içindeki `versionCode` / `versionName` değerlerini değiştir.
 
