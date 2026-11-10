@@ -301,7 +301,7 @@ const norm=s=>String(s||'').toLocaleLowerCase('tr').replace(/ı/g,'i').normalize
 const hostOf=u=>{try{return new URL(u).hostname}catch(e){return'Hesap'}};
 
 const LS='tvkutu_v1';
-const DEF={engine:'auto',liveFormat:'m3u8',buffer:30,aspect:'contain',cacheHours:12,proxy:'',proxyStreams:false,hideAdult:true,autoplayNext:true,resume:true,cardView:'auto',extPlayer:'internal',appPlayer:'exo',decoder:'hw',ua:'app'};
+const DEF={engine:'auto',liveFormat:'ts',buffer:30,aspect:'contain',cacheHours:12,proxy:'',proxyStreams:false,hideAdult:true,autoplayNext:true,resume:true,cardView:'poster',extPlayer:'internal',appPlayer:'exo',decoder:'hw',ua:'okhttp'};
 const COLORS=['#6c63ff','#e5484d','#f5a524','#3ecf8e','#00a2ff','#d14fd1','#ff7a45','#7c8798'];
 const TYPE={xtream:'Xtream Codes',m3u:'M3U Link',file:'M3U Dosya'};
 const MODE={live:'Canlı',movie:'Film',series:'Dizi'};

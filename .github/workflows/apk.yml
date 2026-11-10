@@ -34,16 +34,20 @@ jobs:
           echo "sdk.dir=$ANDROID_HOME" > local.properties
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
           ./gradlew assembleRelease --no-daemon --stacktrace
-          cp app/build/outputs/apk/release/app-release.apk TV-Zamani.apk
+          ls app/build/outputs/apk/release/
+          cp app/build/outputs/apk/release/app-arm64-v8a-release.apk TV-Zamani.apk
+          cp app/build/outputs/apk/release/app-armeabi-v7a-release.apk TV-Zamani-32bit.apk
 
       - uses: actions/upload-artifact@v4
         with:
           name: TV-Zamani-APK
-          path: TV-Zamani.apk
+          path: |
+            TV-Zamani.apk
+            TV-Zamani-32bit.apk
 
       - name: Releases'a yükle
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="v1.0.${{ github.run_number }}"
-          gh release create "$TAG" TV-Zamani.apk --title "TV Zamanı $TAG" --notes "Otomatik derleme. Kurmak için TV-Zamani.apk dosyasını indir." --latest
+          gh release create "$TAG" TV-Zamani.apk TV-Zamani-32bit.apk --title "TV Zamanı $TAG" --notes "Otomatik derleme. Telefon ve yeni TV için TV-Zamani.apk (64 bit). Eski 32 bit TV kutuları için TV-Zamani-32bit.apk." --latest

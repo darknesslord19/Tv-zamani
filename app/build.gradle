@@ -13,10 +13,15 @@ android {
         // GitHub her derlemede numarayı artırır; yeni sürüm eskisinin üstüne kurulur
         versionCode((System.getenv('GITHUB_RUN_NUMBER') ?: '1') as Integer)
         versionName "1.0.${System.getenv('GITHUB_RUN_NUMBER') ?: '0'}"
+    }
 
-        // VLC'nin yerel kütüphaneleri: TV kutularının ve telefonların neredeyse tamamı ARM
-        ndk {
-            abiFilters 'armeabi-v7a', 'arm64-v8a'
+    // Boyut: her işlemci için ayrı APK (VLC'nin yerel kütüphaneleri büyük). Telefonların/yeni TV'lerin çoğu arm64.
+    splits {
+        abi {
+            enable true
+            reset()
+            include 'arm64-v8a', 'armeabi-v7a'
+            universalApk false
         }
     }
 
