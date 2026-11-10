@@ -223,6 +223,7 @@ button.li:focus,button.li:hover{border-color:#fff}
   <button class="acct focusable" id="hdrAcct"></button>
   <div class="sp"></div>
   <input id="search" class="search" type="search" placeholder="🔍 Kanal, film, dizi ara…" autocomplete="off">
+  <button class="hbtn focusable" id="btnOpenUrl">Link aç</button>
   <button class="hbtn focusable" id="btnRefresh">Yenile</button>
   <button class="hbtn focusable" id="btnSettings">Ayarlar</button>
   <div class="clock" id="clock">--:--</div>
@@ -398,10 +399,20 @@ async function xfetch(url,json){
 }
 
 /* ---------------- M3U ---------------- */
+function hdrName(k){k=k.trim().toLowerCase();
+ return /^(http-)?user-agent$/.test(k)?'User-Agent':/^(http-)?refer(r)?er$/.test(k)?'Referer':/^(http-)?origin$/.test(k)?'Origin':/^(http-)?cookie$/.test(k)?'Cookie':''}
+/* "adres|User-Agent=x&Referer=y" (Kodi biçimi) → {url, h} */
+function splitUrlHdr(line){
+ const i=line.indexOf('|');if(i<0||!/=/.test(line.slice(i+1)))return{url:line,h:null};
+ const h={};line.slice(i+1).split('&').forEach(p=>{const j=p.indexOf('=');if(j<1)return;const k=hdrName(p.slice(0,j));if(!k)return;let v=p.slice(j+1);try{v=decodeURIComponent(v)}catch(e){}h[k]=v});
+ return{url:line.slice(0,i),h:Object.keys(h).length?h:null};
+}
 function parseM3U(txt){
- const out=[];let cur=null,n=0,liveN=0;
+ const out=[];let cur=null,n=0,liveN=0,hd=null;
  for(let line of txt.split(/\r?\n/)){
   line=line.trim();if(!line)continue;
+  if(/^#EXTVLCOPT:/i.test(line)){const s=line.slice(11),j=s.indexOf('=');if(j>0){const k=hdrName(s.slice(0,j));if(k)(hd=hd||{})[k]=s.slice(j+1).trim()}continue}
+  if(/^#EXTHTTP:/i.test(line)){try{const o=JSON.parse(line.slice(9));for(const k in o){const nk=hdrName(k);if(nk)(hd=hd||{})[nk]=String(o[k])}}catch(e){}continue}
   if(/^#EXTINF/i.test(line)){
    const a=k=>{const m=line.match(new RegExp(k+'="([^"]*)"','i'));return m?m[1].trim():''};
    const stripped=line.replace(/[\w-]+="[^"]*"/g,'');const ci=stripped.indexOf(',');
@@ -410,6 +421,8 @@ function parseM3U(txt){
   else if(line[0]==='#')continue;
   else{
    const it=cur||{name:decodeURIComponent(line.split('/').pop()||'Kanal'),group:'Diğer',logo:'',num:0};
+   const sp=splitUrlHdr(line);line=sp.url;
+   if(sp.h||hd)it.h=Object.assign({},hd||{},sp.h||{});hd=null;
    it.url=line;it.id='m'+(++n);
    it.kind=(/\/(movie|series)\//i.test(line)||/\.(mp4|mkv|avi|mov|m4v|webm)(\?|$)/i.test(line))?'movie':'live';
    if(it.kind==='live'){liveN++;if(!it.num)it.num=liveN}else delete it.num;
@@ -679,6 +692,55 @@ function playerChooser(it,list){
  $$('[data-ext]').forEach(b=>b.onclick=()=>{closeModal();saveHist(it);openExternal(it,b.dataset.ext)});
 }
 
+/* ---------------- Link aç / Test ---------------- */
+const RES={n:0,cb:{}};
+window.resolved=(id,json)=>{const f=RES.cb[id];delete RES.cb[id];if(f){let r={};try{r=JSON.parse(json)}catch(e){}f(r)}};
+function resolveLink(url,h){
+ return new Promise(res=>{
+  if(!(IN_APP&&AndroidBridge.resolveUrl)||!/^https?:/i.test(url))return res({url,type:''});
+  const id=++RES.n;const t=setTimeout(()=>{delete RES.cb[id];res({url,type:''})},25000);
+  RES.cb[id]=r=>{clearTimeout(t);res(r)};
+  try{AndroidBridge.resolveUrl(url,JSON.stringify(h||{}),id)}catch(e){clearTimeout(t);delete RES.cb[id];res({url,type:''})}
+ });
+}
+async function playLink(raw,engine){
+ raw=(raw||'').trim();if(!raw)return toast('Bir link yapıştır');
+ const sp=splitUrlHdr(raw);let url=sp.url.trim();
+ if(!/^[a-z][a-z0-9+.-]*:\/\//i.test(url))url='http://'+url;
+ toast('Link çözülüyor…');
+ const r=await resolveLink(url,sp.h);
+ if(r.type==='html'&&!/\.(m3u8?|ts|mp4|mkv)(\?|$)/i.test(r.url||''))return toast('Bu link bir video değil, web sayfası açıyor.');
+ url=r.url||url;
+ const isFile=r.type==='file'||/\.(mp4|mkv|avi|mov|m4v|webm)(\?|$)/i.test(url);
+ let host='Link';try{host=new URL(url).hostname}catch(e){}
+ const it={id:'x'+Date.now(),name:host,group:'Link',logo:'',kind:isFile?'movie':'live',url,h:sp.h||undefined};
+ closeModal();
+ play(it,[it],engine?{engine}:{});
+}
+function openUrlBox(){
+ const eng=IN_APP&&AndroidBridge.playNative?NATIVE_ENG:[];
+ openModal(`<div class="mhead"><h2>Link aç</h2><button class="btn focusable" id="mClose">Kapat</button></div>
+ <p class="muted small">m3u8, ts, mp4, mkv, rtmp, rtsp, udp ve kısaltılmış (bit.ly gibi) linkler. Gerekirse sonuna <code>|User-Agent=...&amp;Referer=...</code> ekleyebilirsin.</p>
+ <div class="field"><input id="ulIn" placeholder="https://…" autocomplete="off" autocapitalize="off"></div>
+ <div class="row"><button class="btn primary focusable" id="ulGo">▶ Oynat</button>${eng.map(([k,l])=>`<button class="btn focusable" data-ue="${k}">${l}</button>`).join('')}</div>`,'narrow');
+ $('#ulGo').onclick=()=>playLink($('#ulIn').value);
+ $('#ulIn').onkeydown=e=>{if(e.key==='Enter')playLink($('#ulIn').value)};
+ $$('[data-ue]').forEach(b=>b.onclick=()=>playLink($('#ulIn').value,b.dataset.ue));
+ setTimeout(()=>$('#ulIn').focus(),60);
+}
+const TESTS=[
+ ['Apple bipbop (HLS)','https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/master.m3u8'],
+ ['Mux test (HLS)','https://test-streams.mux.dev/x36xhizzs/x36xhizzs.m3u8'],
+ ['Big Buck Bunny (MP4)','https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4']
+];
+function openTestBox(){
+ const eng=IN_APP&&AndroidBridge.playNative?NATIVE_ENG:[['web','HLS oynatıcı (web)']];
+ openModal(`<div class="mhead"><h2>Oynatıcıyı test et</h2><button class="btn focusable" id="mClose">Kapat</button></div>
+ <p class="muted small">Herkese açık test yayını + oynatıcı seç. Bunlar açılıyorsa oynatıcı sağlamdır; sorun kendi linkindedir.</p>
+ ${TESTS.map(([n],i)=>`<div class="li"><div class="grow"><b>${n}</b></div>${eng.map(([k,l])=>`<button class="btn focusable" data-t="${i}" data-e="${k}">${l}</button>`).join('')}</div>`).join('')}`,'wide');
+ $$('[data-t]').forEach(b=>b.onclick=()=>{const [n,u]=TESTS[+b.dataset.t];const it={id:'t'+b.dataset.t,name:n,group:'Test',logo:'',kind:/\.mp4/.test(u)?'movie':'live',url:u};closeModal();b.dataset.e==='web'?play(it,[it],{web:true}):play(it,[it],{engine:b.dataset.e})});
+}
+
 /* ---------------- Detay ekranları ---------------- */
 function movieDetail(it){
  const p=prof(),h=p.hist[favKey(it)],can=h&&h.pos>30&&(!h.dur||h.pos<h.dur*.95);
@@ -814,7 +876,8 @@ function tabPlayer(b){
  const s=S();
  b.innerHTML=Object.keys(OPTS).map(k=>`<button class="li focusable cyc" data-k="${k}"><span class="grow">${LABEL[k]}</span><b class="v">${optLabel(k,s[k])} ›</b></button>`).join('')
  +`<div class="field"><label>CORS proxy (isteğe bağlı). Örn: https://proxy.ornek.com/?url={url} — {url} yoksa adres sona eklenir</label><input id="sProxy" value="${esc(s.proxy)}" placeholder="Boş bırak"></div>
- <div class="row"><button class="btn primary focusable" id="sProxySave">Proxy'yi kaydet</button><button class="btn focusable" id="sClear">Liste önbelleğini temizle</button></div>`;
+ <div class="row"><button class="btn primary focusable" id="sProxySave">Proxy'yi kaydet</button><button class="btn focusable" id="sClear">Liste önbelleğini temizle</button><button class="btn focusable" id="sTest">Oynatıcıyı test et</button></div>`;
+ $('#sTest').onclick=openTestBox;
  $$('.cyc',b).forEach(btn=>btn.onclick=()=>{
   const k=btn.dataset.k,arr=OPTS[k],cur=S()[k],i=arr.findIndex(o=>o[0]===cur),nv=arr[(i+1)%arr.length][0];
   prof().settings[k]=nv;save();$('b',btn).textContent=optLabel(k,nv)+' ›';
@@ -1066,7 +1129,7 @@ function play(it,list,opt={}){
   const start=(!opt.fromStart&&S().resume&&h&&h.pos>30&&(!h.dur||h.pos<h.dur-60))?Math.floor(h.pos*1000):0;
   NP.list=sub;NP.ret=document.activeElement;saveHist(it);
   const ok=AndroidBridge.playNative(JSON.stringify({engine:eng,decoder:S().decoder,index:idx,start,autoNext:S().autoplayNext,
-   items:sub.map(x=>({url:x.xt&&x.kind==='live'?x.url.replace(/\.(m3u8|ts)$/i,'.'+S().liveFormat):x.url,title:(x.kind==='live'&&x.num?x.num+' · ':'')+x.name,live:x.kind==='live',num:+x.num||0}))}));
+   items:sub.map(x=>({url:x.xt&&x.kind==='live'?x.url.replace(/\.(m3u8|ts)$/i,'.'+S().liveFormat):x.url,title:(x.kind==='live'&&x.num?x.num+' · ':'')+x.name,live:x.kind==='live',num:+x.num||0,h:x.h||null}))}));
   if(ok)return;
  }
  const ext=S().extPlayer;
@@ -1520,6 +1583,7 @@ function init(){
  $('#hdrAcct').onclick=sourcePicker;
  $('#btnRefresh').onclick=()=>{RT.seriesCache.clear();loadSource(true)};
  $('#btnSettings').onclick=()=>openSettings('hesaplar');
+ $('#btnOpenUrl').onclick=openUrlBox;
  let st;$('#search').addEventListener('input',e=>{clearTimeout(st);st=setTimeout(()=>{RT.search=e.target.value.trim();renderGrid()},300)});
  $('#side').addEventListener('click',e=>{
   const m=e.target.closest('[data-mode]');

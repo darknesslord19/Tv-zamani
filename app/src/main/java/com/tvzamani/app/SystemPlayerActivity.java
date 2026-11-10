@@ -57,9 +57,9 @@ public class SystemPlayerActivity extends BasePlayerActivity {
     protected void engineStart(String url, long startMs) {
         mp = null;
         pendingSeek = startMs;
-        Map<String, String> headers = new HashMap<>();
-        headers.put("User-Agent", UA);
-        vv.setVideoURI(Uri.parse(url), headers);
+        Map<String, String> h = new HashMap<>(headers);
+        if (!h.containsKey("User-Agent")) h.put("User-Agent", UA);
+        vv.setVideoURI(Uri.parse(url), h);
     }
 
     @Override protected void engineStop() { if (vv != null) vv.stopPlayback(); mp = null; }

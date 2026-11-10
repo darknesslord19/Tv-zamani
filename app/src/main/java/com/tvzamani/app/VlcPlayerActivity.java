@@ -77,7 +77,10 @@ public class VlcPlayerActivity extends BasePlayerActivity {
         Media m = new Media(vlc, Uri.parse(url));
         m.setHWDecoderEnabled(!softwareDecoder, false);
         m.addOption(":network-caching=3000");
-        m.addOption(":http-user-agent=" + UA);
+        String ua = headers.get("User-Agent");
+        m.addOption(":http-user-agent=" + (ua != null ? ua : UA));
+        String ref = headers.get("Referer");
+        if (ref != null) m.addOption(":http-referrer=" + ref);
         if (startMs > 0) m.addOption(":start-time=" + (startMs / 1000));
         mp.setMedia(m);
         m.release();

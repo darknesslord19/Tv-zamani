@@ -62,6 +62,7 @@ public class PlayerActivity extends Activity {
 
 
     private static final String UA = "VLC/3.0.20 LibVLC/3.0.20";
+    private DefaultHttpDataSource.Factory http;
 
     private ExoPlayer player;
     private PlayerView view;
@@ -135,7 +136,7 @@ public class PlayerActivity extends Activity {
         setContentView(root);
         hideSystemUi();
 
-        DefaultHttpDataSource.Factory http = new DefaultHttpDataSource.Factory()
+        http = new DefaultHttpDataSource.Factory()
                 .setUserAgent(UA)
                 .setAllowCrossProtocolRedirects(true)
                 .setConnectTimeoutMs(15000)
@@ -202,6 +203,11 @@ public class PlayerActivity extends Activity {
         prevBtn.setVisibility(items.length() > 1 ? View.VISIBLE : View.GONE);
         nextBtn.setVisibility(items.length() > 1 ? View.VISIBLE : View.GONE);
         err.setVisibility(View.GONE);
+
+        java.util.Map<String, String> hh = Hdr.of(it);
+        String ua = hh.remove("User-Agent");
+        http.setUserAgent(ua != null ? ua : UA);
+        http.setDefaultRequestProperties(hh);
 
         boolean hls = isHlsUrl(url);
         String mime = null;

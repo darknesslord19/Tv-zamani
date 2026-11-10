@@ -37,6 +37,8 @@ import java.util.Locale;
 public abstract class BasePlayerActivity extends Activity {
 
     protected static final String UA = "VLC/3.0.20 LibVLC/3.0.20";
+    /** Geçerli yayının özel istek başlıkları (User-Agent, Referer...). */
+    protected java.util.Map<String, String> headers = new java.util.LinkedHashMap<>();
 
     protected JSONArray items;
     protected int index;
@@ -256,6 +258,7 @@ public abstract class BasePlayerActivity extends Activity {
         err.setVisibility(View.GONE);
         spin.setVisibility(View.VISIBLE);
         try { engineStop(); } catch (Throwable ignored) { }
+        headers = Hdr.of(it);
         engineStart(it.optString("url"), startMs);
     }
 

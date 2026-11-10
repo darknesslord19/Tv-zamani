@@ -383,6 +383,67 @@ public class MainActivity extends Activity {
             }
         }
 
+        /**
+         * Kısaltılmış / yönlendirmeli linki sonuna kadar takip eder, türünü anlar.
+         * Sonuç window.resolved(id, json) ile sayfaya döner.
+         */
+        @JavascriptInterface
+        public void resolveUrl(String url, String headersJson, int id) {
+            new Thread(() -> {
+                JSONObject res = new JSONObject();
+                try {
+                    String cur = url;
+                    java.util.Map<String, String> hh = new java.util.HashMap<>();
+                    try {
+                        JSONObject h = new JSONObject(headersJson == null || headersJson.isEmpty() ? "{}" : headersJson);
+                        java.util.Iterator<String> ks = h.keys();
+                        while (ks.hasNext()) { String k = ks.next(); hh.put(k, h.optString(k)); }
+                    } catch (Exception ignored) { }
+                    String type = "", ct = "";
+                    int code = 0;
+                    for (int i = 0; i < 10; i++) {
+                        java.net.HttpURLConnection c = (java.net.HttpURLConnection) new java.net.URL(cur).openConnection();
+                        c.setInstanceFollowRedirects(false);
+                        c.setConnectTimeout(10000);
+                        c.setReadTimeout(10000);
+                        c.setRequestProperty("User-Agent", hh.containsKey("User-Agent") ? hh.get("User-Agent") : "VLC/3.0.20 LibVLC/3.0.20");
+                        for (java.util.Map.Entry<String, String> e : hh.entrySet())
+                            if (!e.getKey().equals("User-Agent")) c.setRequestProperty(e.getKey(), e.getValue());
+                        code = c.getResponseCode();
+                        if (code >= 300 && code < 400 && c.getHeaderField("Location") != null) {
+                            cur = new java.net.URL(new java.net.URL(cur), c.getHeaderField("Location")).toString();
+                            c.disconnect();
+                            continue;
+                        }
+                        ct = c.getContentType() == null ? "" : c.getContentType().toLowerCase(java.util.Locale.ROOT);
+                        byte[] buf = new byte[512];
+                        int n = 0;
+                        if (code < 400) {
+                            java.io.InputStream in = c.getInputStream();
+                            int r;
+                            while (n < buf.length && (r = in.read(buf, n, buf.length - n)) > 0) n += r;
+                        }
+                        c.disconnect();
+                        String head = new String(buf, 0, n, StandardCharsets.ISO_8859_1).replace("ï»¿", "");
+                        if (head.startsWith("#EXTM3U") || ct.contains("mpegurl")) type = "hls";
+                        else if (ct.contains("text/html") || head.trim().toLowerCase(java.util.Locale.ROOT).startsWith("<")) type = "html";
+                        else if (n > 0 && (buf[0] == 0x47 || ct.contains("mp2t"))) type = "ts";
+                        else if (head.startsWith("FLV")) type = "flv";
+                        else if (n > 8 && (head.substring(4, 8).equals("ftyp") || ct.startsWith("video/"))) type = "file";
+                        break;
+                    }
+                    res.put("url", cur);
+                    res.put("type", type);
+                    res.put("code", code);
+                    res.put("ct", ct);
+                } catch (Exception e) {
+                    try { res.put("url", url); res.put("type", ""); res.put("error", String.valueOf(e.getMessage())); } catch (Exception ignored) { }
+                }
+                final String js = "window.resolved&&window.resolved(" + id + "," + JSONObject.quote(res.toString()) + ")";
+                runOnUiThread(() -> web.evaluateJavascript(js, null));
+            }).start();
+        }
+
         @JavascriptInterface
         public boolean isTv() {
             UiModeManager m = (UiModeManager) getSystemService(Context.UI_MODE_SERVICE);
