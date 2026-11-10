@@ -206,7 +206,7 @@ public class PlayerActivity extends Activity {
 
         java.util.Map<String, String> hh = Hdr.of(it);
         String ua = hh.remove("User-Agent");
-        http.setUserAgent(ua != null ? ua : UA);
+        http.setUserAgent(ua != null ? ua : Pending.ua);
         http.setDefaultRequestProperties(hh);
 
         boolean hls = isHlsUrl(url);

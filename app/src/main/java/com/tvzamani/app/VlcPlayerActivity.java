@@ -39,7 +39,7 @@ public class VlcPlayerActivity extends BasePlayerActivity {
         opts.add("--network-caching=3000");
         opts.add("--live-caching=3000");
         opts.add("--http-reconnect");
-        opts.add("--http-user-agent=" + UA);
+        opts.add("--http-user-agent=" + Pending.ua);
         opts.add("--audio-time-stretch");
         opts.add("--no-stats");
         vlc = new LibVLC(this, opts);
@@ -78,7 +78,7 @@ public class VlcPlayerActivity extends BasePlayerActivity {
         m.setHWDecoderEnabled(!softwareDecoder, false);
         m.addOption(":network-caching=3000");
         String ua = headers.get("User-Agent");
-        m.addOption(":http-user-agent=" + (ua != null ? ua : UA));
+        m.addOption(":http-user-agent=" + (ua != null ? ua : Pending.ua));
         String ref = headers.get("Referer");
         if (ref != null) m.addOption(":http-referrer=" + ref);
         if (startMs > 0) m.addOption(":start-time=" + (startMs / 1000));

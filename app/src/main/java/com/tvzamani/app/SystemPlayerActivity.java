@@ -58,7 +58,7 @@ public class SystemPlayerActivity extends BasePlayerActivity {
         mp = null;
         pendingSeek = startMs;
         Map<String, String> h = new HashMap<>(headers);
-        if (!h.containsKey("User-Agent")) h.put("User-Agent", UA);
+        if (!h.containsKey("User-Agent")) h.put("User-Agent", Pending.ua);
         vv.setVideoURI(Uri.parse(url), h);
     }
 

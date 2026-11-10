@@ -373,6 +373,8 @@ public class MainActivity extends Activity {
                 Pending.start = o.optLong("start", 0);
                 Pending.autoNext = o.optBoolean("autoNext", true);
                 Pending.softwareDecoder = "sw".equals(o.optString("decoder"));
+                String uaS = o.optString("ua", "");
+                if (!uaS.isEmpty()) Pending.ua = uaS;
                 String engine = o.optString("engine", "exo");
                 Class<?> cls = "vlc".equals(engine) ? VlcPlayerActivity.class
                         : "system".equals(engine) ? SystemPlayerActivity.class : PlayerActivity.class;
