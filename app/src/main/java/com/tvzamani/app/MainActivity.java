@@ -217,7 +217,7 @@ public class MainActivity extends Activity {
             String js = "window.nativeDone&&window.nativeDone(" + data.getIntExtra("index", 0) + ","
                     + data.getLongExtra("pos", 0) + "," + data.getLongExtra("dur", 0) + ","
                     + JSONObject.quote(data.getStringExtra("err") == null ? "" : data.getStringExtra("err")) + ","
-                    + data.getBooleanExtra("web", false) + ")";
+                    + JSONObject.quote(data.getStringExtra("next") == null ? "" : data.getStringExtra("next")) + ")";
             web.evaluateJavascript(js, null);
             return;
         }
@@ -368,11 +368,15 @@ public class MainActivity extends Activity {
         public boolean playNative(String json) {
             try {
                 JSONObject o = new JSONObject(json);
-                PlayerActivity.pendingItems = o.getJSONArray("items");
-                PlayerActivity.pendingIndex = o.optInt("index", 0);
-                PlayerActivity.pendingStart = o.optLong("start", 0);
-                PlayerActivity.pendingAutoNext = o.optBoolean("autoNext", true);
-                runOnUiThread(() -> startActivityForResult(new Intent(MainActivity.this, PlayerActivity.class), PLAYER_REQ));
+                Pending.items = o.getJSONArray("items");
+                Pending.index = o.optInt("index", 0);
+                Pending.start = o.optLong("start", 0);
+                Pending.autoNext = o.optBoolean("autoNext", true);
+                Pending.softwareDecoder = "sw".equals(o.optString("decoder"));
+                String engine = o.optString("engine", "exo");
+                Class<?> cls = "vlc".equals(engine) ? VlcPlayerActivity.class
+                        : "system".equals(engine) ? SystemPlayerActivity.class : PlayerActivity.class;
+                runOnUiThread(() -> startActivityForResult(new Intent(MainActivity.this, cls), PLAYER_REQ));
                 return true;
             } catch (Exception e) {
                 return false;

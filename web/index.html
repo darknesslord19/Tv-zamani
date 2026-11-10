@@ -300,7 +300,7 @@ const norm=s=>String(s||'').toLocaleLowerCase('tr').replace(/ı/g,'i').normalize
 const hostOf=u=>{try{return new URL(u).hostname}catch(e){return'Hesap'}};
 
 const LS='tvkutu_v1';
-const DEF={engine:'auto',liveFormat:'m3u8',buffer:30,aspect:'contain',cacheHours:12,proxy:'',proxyStreams:false,hideAdult:true,autoplayNext:true,resume:true,cardView:'auto',extPlayer:'internal',appPlayer:'exo'};
+const DEF={engine:'auto',liveFormat:'m3u8',buffer:30,aspect:'contain',cacheHours:12,proxy:'',proxyStreams:false,hideAdult:true,autoplayNext:true,resume:true,cardView:'auto',extPlayer:'internal',appPlayer:'exo',decoder:'hw'};
 const COLORS=['#6c63ff','#e5484d','#f5a524','#3ecf8e','#00a2ff','#d14fd1','#ff7a45','#7c8798'];
 const TYPE={xtream:'Xtream Codes',m3u:'M3U Link',file:'M3U Dosya'};
 const MODE={live:'Canlı',movie:'Film',series:'Dizi'};
@@ -312,8 +312,9 @@ const IN_APP=!!window.AndroidBridge;
 const canQR=()=>location.protocol.startsWith('http')&&!IN_APP;
 
 const OPTS={
- appPlayer:[['exo','ExoPlayer (yerel)'],['web','HLS oynatıcı (web)']],
- extPlayer:[['internal','Dahili oynatıcı'],['vlc','VLC'],['mx','MX Player'],['ask','Harici (her seferinde seç)']],
+ appPlayer:[['exo','ExoPlayer (TiviMate tarzı)'],['vlc','VLC (yerleşik)'],['system','Sistem oynatıcısı'],['web','HLS oynatıcı (web)']],
+ decoder:[['hw','Donanım (önerilen)'],['sw','Yazılım (uyumluluk)']],
+ extPlayer:[['internal','Dahili oynatıcı'],['vlc','VLC'],['mx','MX Player'],['just','Just Player'],['mpv','mpv'],['ask','Harici (her seferinde seç)']],
  cardView:[['auto','Otomatik'],['poster','Afiş'],['logo','Logo']],
  engine:[['auto','Otomatik'],['hls','HLS.js'],['mpegts','MPEG-TS'],['native','Yerel (tarayıcı)']],
  liveFormat:[['m3u8','HLS (.m3u8)'],['ts','MPEG-TS (.ts)']],
@@ -325,7 +326,7 @@ const OPTS={
  cacheHours:[[1,'1 saat'],[6,'6 saat'],[12,'12 saat'],[24,'1 gün'],[72,'3 gün']],
  proxyStreams:[[false,'Hayır'],[true,'Evet']]
 };
-const LABEL={appPlayer:'Oynatıcı (uygulamada)',extPlayer:'Video oynatıcı (Android)',cardView:'Kart görünümü',engine:'Oynatıcı motoru',liveFormat:'Canlı yayın formatı (Xtream)',buffer:'Tampon süresi',aspect:'Varsayılan görüntü oranı',resume:'Kaldığı yerden devam',autoplayNext:'Sonraki bölümü otomatik oynat',hideAdult:'Yetişkin kategorileri',cacheHours:'Liste önbelleği',proxyStreams:"Proxy'yi yayınlara da uygula"};
+const LABEL={appPlayer:'Oynatıcı (uygulamada)',decoder:'Kod çözücü (ExoPlayer / VLC)',extPlayer:'Harici oynatıcı (Android)',cardView:'Kart görünümü',engine:'Oynatıcı motoru',liveFormat:'Canlı yayın formatı (Xtream)',buffer:'Tampon süresi',aspect:'Varsayılan görüntü oranı',resume:'Kaldığı yerden devam',autoplayNext:'Sonraki bölümü otomatik oynat',hideAdult:'Yetişkin kategorileri',cacheHours:'Liste önbelleği',proxyStreams:"Proxy'yi yayınlara da uygula"};
 const optLabel=(k,v)=>(OPTS[k].find(o=>o[0]===v)||[0,String(v)])[1];
 
 const I={
@@ -667,16 +668,28 @@ function openItem(it,list){
  movieDetail(it);
 }
 
+/* ---------------- Oynatıcı seçici ---------------- */
+function playerChooser(it,list){
+ const L=list&&list.length?list:[it];
+ const opts=(IN_APP&&AndroidBridge.playNative?NATIVE_ENG.map(([k,l])=>[k,l]):[]).concat([['web','HLS oynatıcı (web)']]);
+ const ext=isAndroid?[['vlc','VLC uygulaması'],['mx','MX Player'],['just','Just Player'],['mpv','mpv'],['ask','Diğer (seçici)']]:[];
+ openModal(`<h2>Oynatıcı seç</h2><p class="muted small">${esc(it.name)}</p><div class="col">${opts.map(([k,l])=>`<button class="btn focusable ${k===S().appPlayer?'primary':''}" data-eng="${k}">▶ ${l}</button>`).join('')}
+ ${ext.length?`<p class="muted small" style="margin:.6em 0 0">Harici uygulamada aç (cihazında yüklü olmalı):</p>${ext.map(([k,l])=>`<button class="btn focusable" data-ext="${k}">${l}</button>`).join('')}`:''}</div>`,'narrow');
+ $$('[data-eng]').forEach(b=>b.onclick=()=>{const k=b.dataset.eng;closeModal();k==='web'?play(it,L,{web:true}):play(it,L,{engine:k})});
+ $$('[data-ext]').forEach(b=>b.onclick=()=>{closeModal();saveHist(it);openExternal(it,b.dataset.ext)});
+}
+
 /* ---------------- Detay ekranları ---------------- */
 function movieDetail(it){
  const p=prof(),h=p.hist[favKey(it)],can=h&&h.pos>30&&(!h.dur||h.pos<h.dur*.95);
  openModal(`<div class="detail">${it.logo?`<img src="${esc(it.logo)}" alt="" onerror="this.remove()">`:''}<div class="info">
   <h2>${esc(it.name)}</h2><p class="muted">${esc(it.group||'')}${it.rating?` · ★ ${esc(it.rating)}`:''}<span id="dMeta"></span></p>
   <div class="row">${can?`<button class="btn primary focusable" id="dRes">▶ Devam et (${fmt(h.pos)})</button><button class="btn focusable" id="dStart">Baştan başla</button>`:`<button class="btn primary focusable" id="dStart">▶ Oynat</button>`}
-  <button class="btn focusable" id="dFav">${p.fav[favKey(it)]?'★ Favoriden çıkar':'☆ Favoriye ekle'}</button></div>
+  <button class="btn focusable" id="dPick">🎬 Oynatıcı seç</button><button class="btn focusable" id="dFav">${p.fav[favKey(it)]?'★ Favoriden çıkar':'☆ Favoriye ekle'}</button></div>
   <p class="muted small" id="dPlot"></p></div></div>`);
  if(can)$('#dRes').onclick=()=>play(it,[it]);
  $('#dStart').onclick=()=>play(it,[it],{fromStart:true});
+ $('#dPick').onclick=()=>playerChooser(it,[it]);
  $('#dFav').onclick=()=>{const on=toggleFav(it);$('#dFav').textContent=on?'★ Favoriden çıkar':'☆ Favoriye ekle'};
  const src=activeSrc();
  if(it.xt&&it.sid&&src&&src.type==='xtream'){
@@ -990,7 +1003,8 @@ function toast(msg,btn,fn){
 function rawUrl(it){let u=it.url||'';if(it.xt&&it.kind==='live')u=u.replace(/\.(m3u8|ts)$/i,'.'+S().liveFormat);return u}
 const streamUrl=u=>S().proxy&&S().proxyStreams?proxify(u):u;
 const isAndroid=/Android/i.test(navigator.userAgent);
-const EXTPKG={vlc:'org.videolan.vlc',mx:'com.mxtech.videoplayer.ad',ask:''};
+const EXTPKG={vlc:'org.videolan.vlc',mx:'com.mxtech.videoplayer.ad',just:'com.brouken.player',mpv:'is.xyz.mpv',ask:''};
+const NATIVE_ENG=[['exo','ExoPlayer'],['vlc','VLC'],['system','Sistem oynatıcısı']];
 function buildAttempts(it){
  const u=it.url||'',s=S(),A=[];
  const add=(engine,url)=>{if(!A.some(a=>a.engine===engine&&a.url===url))A.push({engine,url})};
@@ -1044,13 +1058,14 @@ function openExternal(it,mode){
 }
 function play(it,list,opt={}){
  closeModal();
- if(IN_APP&&AndroidBridge.playNative&&(S().appPlayer!=='web'||opt.native)&&!opt.web&&!P.item&&!(S().extPlayer&&S().extPlayer!=='internal')){
+ const eng=opt.engine||(opt.native?'exo':S().appPlayer);
+ if(IN_APP&&AndroidBridge.playNative&&eng!=='web'&&!opt.web&&!P.item&&(opt.engine||!(S().extPlayer&&S().extPlayer!=='internal'))){
   const L=list&&list.length?list:[it];let idx=Math.max(0,L.findIndex(x=>x.id===it.id));
   const from=Math.max(0,idx-500),sub=L.slice(from,from+1000);idx-=from;
   const h=prof().hist[favKey(it)];
   const start=(!opt.fromStart&&S().resume&&h&&h.pos>30&&(!h.dur||h.pos<h.dur-60))?Math.floor(h.pos*1000):0;
   NP.list=sub;NP.ret=document.activeElement;saveHist(it);
-  const ok=AndroidBridge.playNative(JSON.stringify({index:idx,start,autoNext:S().autoplayNext,
+  const ok=AndroidBridge.playNative(JSON.stringify({engine:eng,decoder:S().decoder,index:idx,start,autoNext:S().autoplayNext,
    items:sub.map(x=>({url:x.xt&&x.kind==='live'?x.url.replace(/\.(m3u8|ts)$/i,'.'+S().liveFormat):x.url,title:(x.kind==='live'&&x.num?x.num+' · ':'')+x.name,live:x.kind==='live',num:+x.num||0}))}));
   if(ok)return;
  }
@@ -1234,7 +1249,7 @@ function settingsSheet(){
  o.push({label:'Görüntü oranı',val:ASPECT[vid.style.objectFit||'contain'],fn:aspectSheet});
  o.push({label:'Oynatıcı motoru',val:ENG[P.engine]||P.engine,fn:engineSheet});
  o.push({label:isAndroid?'Harici oynatıcıda aç (VLC/MX)':'Yayın linkini kopyala',fn:()=>{closeSheet(true);openExternal(P.item,isAndroid?'ask':'')}});
- if(IN_APP&&AndroidBridge.playNative)o.push({label:'ExoPlayer\'da aç (yerel oynatıcı)',fn:()=>{const it=P.item,l=P.list;closeSheet(true);stopPlayer();setTimeout(()=>play(it,l,{native:true}),150)}});
+ if(IN_APP&&AndroidBridge.playNative)o.push({label:'Başka oynatıcıda aç (ExoPlayer / VLC / Sistem)',fn:()=>{closeSheet(true);engineSheet()}});
  o.push({label:'Yayın bilgisi',fn:infoSheet});
  openSheet('Oynatıcı ayarları',o);
 }
@@ -1283,7 +1298,7 @@ function loadSubFile(f){
 function speedSheet(){openSheet('Oynatma hızı',[0.5,0.75,1,1.25,1.5,2].map(r=>({label:r+'x',on:vid.playbackRate===r,fn:()=>{vid.playbackRate=r;closeSheet()}})))}
 function aspectSheet(){openSheet('Görüntü oranı',Object.entries(ASPECT).map(([k,l])=>({label:l,on:(vid.style.objectFit||'contain')===k,fn:()=>{vid.style.objectFit=k;closeSheet()}})))}
 function engineSheet(){
- const exo=IN_APP&&AndroidBridge.playNative?[{label:'ExoPlayer (yerel oynatıcı)',val:'en güçlü seçenek',fn:()=>{const it=P.item,l=P.list;closeSheet(true);stopPlayer();setTimeout(()=>play(it,l,{native:true}),150)}}]:[];
+ const exo=IN_APP&&AndroidBridge.playNative?NATIVE_ENG.map(([k,l])=>({label:l,val:'yerel oynatıcı',fn:()=>{const it=P.item,li=P.list;closeSheet(true);stopPlayer();setTimeout(()=>play(it,li,{engine:k}),150)}})):[];
  openSheet('Oynatıcı motoru',exo.concat(['hls','mpegts','native'].map(e=>({label:ENG[e],val:e==='hls'?'m3u8 yayınlar':e==='mpegts'?'.ts canlı yayınlar':'mp4 / tarayıcı',on:P.engine===e,fn:()=>{
   closeSheet(true);const keep=P.attempts||[];resetTries();
   let i=P.attempts.findIndex(a=>a.engine===e);if(i<0){P.attempts.push({engine:e,url:rawUrl(P.item)});i=P.attempts.length-1}
@@ -1435,12 +1450,12 @@ function route(k,e){
 }
 // Android uygulaması köprüsü: kumanda tuşları ve geri tuşu
 window.tvKey=c=>route(keyName({keyCode:c}));
-window.nativeDone=(i,pos,dur,err,toWeb)=>{
+window.nativeDone=(i,pos,dur,err,next)=>{
  const it=NP.list[i];
  if(it){if(dur>0)saveHist(it,pos/1000,dur/1000);else saveHist(it)}
  if(!$('#app').hidden){renderSidebar();const r=NP.ret;if(r&&r.classList&&r.classList.contains('card')&&document.contains(r)){const n=refreshCard(+r.dataset.i);(n||r).focus()}}
- if(toWeb&&it){play(it,NP.list,{web:true});return}
- if(err&&it)toast(err,'HLS oynatıcıda dene',()=>play(it,NP.list,{web:true}));
+ if(next&&it){next==='web'?play(it,NP.list,{web:true}):play(it,NP.list,{engine:next});return}
+ if(err&&it)toast(err,'Başka oynatıcı',()=>playerChooser(it,NP.list));
 };
 window.tvBack=()=>{if(modalOpen()||P.item)return route('back');if(!$('#app').hidden)return !!mainKey('back');return false};
 document.addEventListener('keydown',e=>{

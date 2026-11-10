@@ -1,6 +1,7 @@
 package com.tvzamani.app;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
@@ -34,6 +35,9 @@ import androidx.media3.datasource.DefaultHttpDataSource;
 import androidx.media3.datasource.HttpDataSource;
 import androidx.media3.exoplayer.DefaultRenderersFactory;
 import androidx.media3.exoplayer.ExoPlayer;
+import androidx.media3.exoplayer.mediacodec.MediaCodecInfo;
+import androidx.media3.exoplayer.mediacodec.MediaCodecSelector;
+import androidx.media3.exoplayer.mediacodec.MediaCodecUtil;
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory;
 import androidx.media3.extractor.DefaultExtractorsFactory;
 import androidx.media3.extractor.ts.DefaultTsPayloadReaderFactory;
@@ -43,6 +47,9 @@ import androidx.media3.ui.PlayerView;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Locale;
 
 /**
@@ -53,11 +60,6 @@ import java.util.Locale;
 @OptIn(markerClass = UnstableApi.class)
 public class PlayerActivity extends Activity {
 
-    // MainActivity buradan doldurur (büyük listeler Intent sınırına takılmasın diye)
-    static JSONArray pendingItems;
-    static int pendingIndex;
-    static long pendingStart;
-    static boolean pendingAutoNext = true;
 
     private static final String UA = "VLC/3.0.20 LibVLC/3.0.20";
 
@@ -72,7 +74,7 @@ public class PlayerActivity extends Activity {
     private int retries;
     private boolean played;
     private boolean autoNext;
-    private boolean switchToWeb;
+    private String nextEngine = "";
     private String lastError = "";
     private int resize = 0;
     private String numBuf = "";
@@ -82,11 +84,12 @@ public class PlayerActivity extends Activity {
     @Override
     protected void onCreate(Bundle state) {
         super.onCreate(state);
-        items = pendingItems != null ? pendingItems : new JSONArray();
-        index = Math.max(0, Math.min(pendingIndex, items.length() - 1));
-        long start = pendingStart;
-        autoNext = pendingAutoNext;
-        pendingItems = null;
+        items = Pending.items != null ? Pending.items : new JSONArray();
+        index = Math.max(0, Math.min(Pending.index, items.length() - 1));
+        long start = Pending.start;
+        autoNext = Pending.autoNext;
+        boolean sw = Pending.softwareDecoder;
+        Pending.items = null;
         if (items.length() == 0) { finish(); return; }
 
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
@@ -115,7 +118,7 @@ public class PlayerActivity extends Activity {
         top.addView(prevBtn);
         top.addView(nextBtn);
         top.addView(button("Oran", v -> cycleResize()));
-        top.addView(button("HLS oynatıcı", v -> openInWeb()));
+        top.addView(button("Oynatıcı", v -> chooseEngine()));
         root.addView(top, new FrameLayout.LayoutParams(-1, -2, Gravity.TOP));
 
         // Hata ekranı
@@ -142,6 +145,15 @@ public class PlayerActivity extends Activity {
                 .setTsExtractorFlags(DefaultTsPayloadReaderFactory.FLAG_ALLOW_NON_IDR_KEYFRAMES
                         | DefaultTsPayloadReaderFactory.FLAG_DETECT_ACCESS_UNITS);
         DefaultRenderersFactory rf = new DefaultRenderersFactory(this).setEnableDecoderFallback(true);
+        if (sw) {
+            // TiviMate'teki "yazılım kod çözücü" seçeneği: önce yazılım çözücüleri dene
+            MediaCodecSelector softwareFirst = (mime, secure, tunneling) -> {
+                List<MediaCodecInfo> l = new ArrayList<>(MediaCodecUtil.getDecoderInfos(mime, secure, tunneling));
+                Collections.sort(l, (a, b) -> Boolean.compare(!a.softwareOnly, !b.softwareOnly));
+                return l;
+            };
+            rf.setMediaCodecSelector(softwareFirst);
+        }
 
         player = new ExoPlayer.Builder(this, rf)
                 .setMediaSourceFactory(new DefaultMediaSourceFactory(ds, ef))
@@ -297,7 +309,7 @@ public class PlayerActivity extends Activity {
     }
 
     private void showError(String msg) {
-        err.setText(msg + "\n\nOK / dokun: tekrar dene\nSarı tuş: HLS oynatıcıda dene\nGeri: çık");
+        err.setText(msg + "\n\nOK / dokun: tekrar dene\nSarı tuş: başka oynatıcı seç\nGeri: çık");
         err.setVisibility(View.VISIBLE);
         err.requestFocus();
     }
@@ -324,9 +336,21 @@ public class PlayerActivity extends Activity {
         Toast.makeText(this, "Görüntü: " + names[resize], Toast.LENGTH_SHORT).show();
     }
 
-    private void openInWeb() {
-        switchToWeb = true;
-        finishWithResult();
+    private void chooseEngine() {
+        List<String> names = new ArrayList<>();
+        List<String> codes = new ArrayList<>();
+        for (int i = 0; i < Pending.ENGINE_CODES.length; i++) {
+            if (Pending.ENGINE_CODES[i].equals("exo")) continue;
+            codes.add(Pending.ENGINE_CODES[i]);
+            names.add(Pending.ENGINE_NAMES[i]);
+        }
+        new AlertDialog.Builder(this)
+                .setTitle("Oynatıcı seç")
+                .setItems(names.toArray(new String[0]), (dlg, w) -> {
+                    nextEngine = codes.get(w);
+                    finishWithResult();
+                })
+                .show();
     }
 
     private void applyNumber() {
@@ -351,7 +375,7 @@ public class PlayerActivity extends Activity {
         boolean down = e.getAction() == KeyEvent.ACTION_DOWN;
         if (k == KeyEvent.KEYCODE_BACK) return super.dispatchKeyEvent(e);
 
-        if (k == KeyEvent.KEYCODE_PROG_YELLOW) { if (down) openInWeb(); return true; }
+        if (k == KeyEvent.KEYCODE_PROG_YELLOW) { if (down) chooseEngine(); return true; }
         if (err.getVisibility() == View.VISIBLE) {
             if (k == KeyEvent.KEYCODE_DPAD_CENTER || k == KeyEvent.KEYCODE_ENTER || k == KeyEvent.KEYCODE_NUMPAD_ENTER) {
                 if (down) retry();
@@ -408,7 +432,7 @@ public class PlayerActivity extends Activity {
         d.putExtra("pos", pos);
         d.putExtra("dur", dur);
         d.putExtra("err", err.getVisibility() == View.VISIBLE ? lastError : "");
-        d.putExtra("web", switchToWeb);
+        d.putExtra("next", nextEngine);
         setResult(RESULT_OK, d);
         finish();
     }

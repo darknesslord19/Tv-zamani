@@ -13,6 +13,11 @@ android {
         // GitHub her derlemede numarayı artırır; yeni sürüm eskisinin üstüne kurulur
         versionCode((System.getenv('GITHUB_RUN_NUMBER') ?: '1') as Integer)
         versionName "1.0.${System.getenv('GITHUB_RUN_NUMBER') ?: '0'}"
+
+        // VLC'nin yerel kütüphaneleri: TV kutularının ve telefonların neredeyse tamamı ARM
+        ndk {
+            abiFilters 'armeabi-v7a', 'arm64-v8a'
+        }
     }
 
     // İmza: AOSP test anahtarı (testkey). Hep aynı anahtar = yeni sürüm eskisinin üstüne kurulur, silmeye gerek yok.
@@ -60,4 +65,7 @@ dependencies {
     implementation "androidx.media3:media3-exoplayer:$media3"
     implementation "androidx.media3:media3-exoplayer-hls:$media3"
     implementation "androidx.media3:media3-ui:$media3"
+
+    // Yerleşik VLC oynatıcı (libVLC)
+    implementation 'org.videolan.android:libvlc-all:3.7.6'
 }
