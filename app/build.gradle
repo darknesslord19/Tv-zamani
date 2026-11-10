@@ -1,0 +1,53 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.tvzamani.app'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'com.tvzamani.app'
+        minSdk 21
+        targetSdk 34
+        versionCode 1
+        versionName '1.0'
+    }
+
+    // Sabit imza: güncellemeler eski sürümün üstüne kurulur, verilerin silinmez.
+    signingConfigs {
+        release {
+            storeFile file('tvzamani.keystore')
+            storePassword 'tvzamani123'
+            keyAlias 'tvzamani'
+            keyPassword 'tvzamani123'
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.release
+        }
+        debug {
+            signingConfig signingConfigs.release
+        }
+    }
+
+    // ANA KAYNAK: ../web klasörü (index.html) olduğu gibi uygulamaya gömülür.
+    sourceSets {
+        main {
+            assets.srcDirs = ['../web']
+        }
+    }
+
+    lint {
+        checkReleaseBuilds false
+        abortOnError false
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
