@@ -19,6 +19,15 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      - name: Oynatıcı kütüphanelerini uygulamaya göm
+        run: |
+          mkdir -p web/lib
+          curl -fsSL -o web/lib/hls.min.js https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.min.js
+          curl -fsSL -o web/lib/mpegts.js https://cdn.jsdelivr.net/npm/mpegts.js@1/dist/mpegts.js
+          curl -fsSL -o web/lib/qrcode.js https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js
+          curl -fsSL -o web/lib/peerjs.min.js https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js
+          ls -la web/lib
+
       - name: APK derle
         run: |
           chmod +x gradlew

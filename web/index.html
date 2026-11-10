@@ -162,6 +162,8 @@ button.li:focus,button.li:hover{border-color:#fff}
 #pVol{width:7em;padding:0;border:0;background:none;accent-color:var(--accent)}
 .spin{position:absolute;left:50%;top:50%;width:60px;height:60px;margin:-30px;border:5px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:r 1s linear infinite;display:none;pointer-events:none}
 #player.loading .spin{display:block}
+.pstat{position:absolute;left:0;right:0;top:calc(50% + 46px);text-align:center;color:#ccc;font-size:.9em;display:none;pointer-events:none;text-shadow:0 1px 4px #000;padding:0 1em}
+#player.loading .pstat{display:block}
 .osd-num{position:absolute;top:.6em;right:1em;font-size:3.5em;font-weight:800;text-shadow:0 2px 10px #000;display:none;font-variant-numeric:tabular-nums}
 .perr{position:absolute;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;gap:.6em;background:rgba(0,0,0,.82);text-align:center;padding:2em;z-index:2}
 .perr p{max-width:40em;color:#ccc}
@@ -234,6 +236,7 @@ button.li:focus,button.li:hover{border-color:#fff}
 <div id="player" hidden>
  <video id="vid" playsinline webkit-playsinline preload="auto"></video>
  <div class="spin"></div>
+ <div class="pstat" id="pStat"></div>
  <div class="osd-num" id="osdNum"></div>
  <div class="pui" id="pui">
   <div class="ptop">
@@ -1001,7 +1004,31 @@ function buildAttempts(it){
  return A;
 }
 function setVod(v){P.vod=!!v;$('#player').classList.toggle('islive',!P.vod)}
-function resetTries(){P.attempts=buildAttempts(P.item);P.ai=0;P.retries=0;P.netRetry=0;P.medRetry=0;P.resumed=false;P.hadPlayed=false;P.cors=false;P.lastErr='';setVod(P.item.kind!=='live')}
+function resetTries(){P.attempts=buildAttempts(P.item);P.ai=0;P.retries=0;P.netRetry=0;P.medRetry=0;P.resumed=false;P.hadPlayed=false;P.cors=false;P.lastErr='';setVod(P.item.kind!=='live');
+ P.needProbe=S().engine==='auto'&&!(P.item.xt&&P.item.kind==='live')&&!/\.(m3u8?|ts|flv|mp4|m4v|webm|mov|mkv|avi|ogv|mp3|aac)(\?|$)/i.test(P.item.url||'')}
+/* Uzantısız linklerde yayının ilk baytlarına bakıp türünü bul */
+async function probeType(url){
+ const ctl=new AbortController(),t=setTimeout(()=>ctl.abort(),8000);
+ try{
+  const r=await fetch(streamUrl(url),{signal:ctl.signal});const ct=(r.headers.get('content-type')||'').toLowerCase();
+  let buf=new Uint8Array(0);const rd=r.body&&r.body.getReader?r.body.getReader():null;
+  if(rd){while(buf.length<400){const x=await rd.read();if(x.done)break;const n=new Uint8Array(buf.length+x.value.length);n.set(buf);n.set(x.value,buf.length);buf=n}try{rd.cancel()}catch(e){}}
+  try{ctl.abort()}catch(e){}
+  const txt=String.fromCharCode.apply(null,Array.from(buf.slice(0,16))).replace(/^\uFEFF/,'');
+  if(txt.startsWith('#EXTM3U')||ct.includes('mpegurl'))return'hls';
+  if(ct.includes('text/html')||/^\s*<(!doctype|html)/i.test(txt))return'html';
+  if((buf[0]===0x47&&(buf.length<189||buf[188]===0x47))||ct.includes('mp2t'))return'ts';
+  if(txt.startsWith('FLV'))return'flv';
+  if(txt.slice(4,8)==='ftyp'||(buf[0]===0x1a&&buf[1]===0x45)||/video\/(mp4|x-matroska|webm)/.test(ct))return'file';
+  return'';
+ }catch(e){return''}finally{clearTimeout(t)}
+}
+function applyProbe(k){
+ if(k==='html'){P.attempts=[];P.ai=0;P.lastErr='Bu link bir video değil, bir web sayfası açıyor. Oynatıcılar yalnızca doğrudan yayın/video linklerini (m3u8, ts, mp4 vb.) oynatabilir.';return}
+ const order={hls:['hls','native'],ts:['mpegts','native','hls'],flv:['mpegts'],file:['native']}[k];
+ if(!order)return;const u=P.attempts[0].url;
+ P.attempts=order.map(e=>({engine:e,url:u})).concat(P.attempts.filter(a=>!order.includes(a.engine)));P.ai=0;
+}
 function copyText(t){
  const fb=()=>{const a=document.createElement('textarea');a.value=t;document.body.appendChild(a);a.select();try{document.execCommand('copy')}catch(e){}a.remove()};
  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t).catch(fb);else fb();
@@ -1037,6 +1064,7 @@ function updateInfo(){
  $('#pPr').style.width='0';$('#pBuf').style.width='0';$('#tCur').textContent='0:00';$('#tDur').textContent='';
 }
 function destroyEngines(){
+ clearTimeout(P.loadT);
  if(P.hls){try{P.hls.destroy()}catch(e){}P.hls=null}
  if(P.ts){try{P.ts.pause();P.ts.unload();P.ts.detachMediaElement();P.ts.destroy()}catch(e){}P.ts=null}
  try{vid.pause()}catch(e){}
@@ -1045,13 +1073,20 @@ function destroyEngines(){
 }
 function start(){
  const pl=$('#player');pl.classList.remove('err');destroyEngines();pl.classList.add('loading');
+ if(P.needProbe){
+  P.needProbe=false;const item=P.item;$('#pStat').textContent='Yayın türü algılanıyor…';
+  probeType(P.attempts[0].url).then(k=>{if(P.item!==item)return;applyProbe(k);setTimeout(()=>{if(P.item===item)start()},400)});
+  return;
+ }
  const at=P.attempts[P.ai];if(!at)return showErr(P.lastErr);
  const it=P.item,s=S(),raw=at.url,live=it.kind==='live';
  P.engine=at.engine;P.lastProg=Date.now();
+ $('#pStat').textContent=`${ENG[at.engine]} ile açılıyor (${P.ai+1}/${P.attempts.length})…`;
+ P.loadT=setTimeout(()=>{if(P.item===it&&!P.hadPlayed&&P.attempts[P.ai]===at)fail('Yayın 20 saniye içinde başlamadı ('+ENG[at.engine]+')')},20000);
  if(at.engine==='hls'){
   if(!(window.Hls&&Hls.isSupported()))return nextAttempt('HLS.js bu cihazda çalışmıyor');
   const cfg={maxBufferLength:s.buffer,maxMaxBufferLength:Math.max(60,s.buffer*2),backBufferLength:live?10:60,enableWorker:true,lowLatencyMode:false,liveDurationInfinity:true,
-   manifestLoadingMaxRetry:1,levelLoadingMaxRetry:4,fragLoadingMaxRetry:6,startFragPrefetch:true};
+   manifestLoadingMaxRetry:1,manifestLoadingTimeOut:15000,levelLoadingMaxRetry:4,fragLoadingMaxRetry:6,startFragPrefetch:true};
   if(s.proxy&&s.proxyStreams)cfg.xhrSetup=(x,u)=>{x.open('GET',proxify(u),true)};
   const h=new Hls(cfg);P.hls=h;
   h.on(Hls.Events.MANIFEST_PARSED,()=>tryPlay());
@@ -1258,7 +1293,7 @@ function listSheet(){
 vid.addEventListener('waiting',()=>{if(P.item)$('#player').classList.add('loading')});
 vid.addEventListener('canplay',()=>$('#player').classList.remove('loading'));
 vid.addEventListener('playing',()=>{
- $('#player').classList.remove('loading');P.hadPlayed=true;P.netRetry=0;P.lastProg=Date.now();updPlay();
+ $('#player').classList.remove('loading');clearTimeout(P.loadT);P.hadPlayed=true;P.netRetry=0;P.lastProg=Date.now();updPlay();
  setTimeout(()=>{if(!vid.paused)P.retries=0},10000);
  if($('#player').classList.contains('ui'))showUI();
 });

@@ -5,7 +5,9 @@ import android.net.Uri;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 
+import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
@@ -15,6 +17,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Uygulamanın ağ katmanı.
@@ -138,9 +142,95 @@ final class Net {
         }
         cors(out);
 
+        // HLS listeleri: yönlendirme sonrası göreli adresleri gerçek sunucuya göre düzelt
+        if (code < 400) {
+            String p = "";
+            try { p = new URL(url).getPath().toLowerCase(Locale.ROOT); } catch (Exception ignored) { }
+            boolean binary = p.matches(".*\\.(ts|mp4|m4s|m4v|mkv|aac|mp3|key|webm|avi|mov|flv)$");
+            boolean maybeList = mime.toLowerCase(Locale.ROOT).contains("mpegurl") || p.endsWith(".m3u8") || p.endsWith(".m3u");
+            if (!binary) {
+                BufferedInputStream bis = new BufferedInputStream(in, 16384);
+                in = bis;
+                if (!maybeList) {
+                    bis.mark(32);
+                    byte[] head = new byte[10];
+                    int n = readUpTo(bis, head);
+                    bis.reset();
+                    String h = new String(head, 0, Math.max(0, n), StandardCharsets.ISO_8859_1).replace("\u00EF\u00BB\u00BF", "");
+                    maybeList = h.startsWith("#EXTM3U");
+                }
+                if (maybeList) {
+                    byte[] all = readAll(bis, 8 * 1024 * 1024);
+                    String body = new String(all, StandardCharsets.UTF_8);
+                    if (body.startsWith("\uFEFF")) body = body.substring(1);
+                    if (body.trim().startsWith("#EXTM3U")) {
+                        all = rewritePlaylist(body, url).getBytes(StandardCharsets.UTF_8);
+                        mime = "application/vnd.apple.mpegurl";
+                        enc = "utf-8";
+                        removeHeader(out, "Content-Length");
+                        out.put("Content-Length", String.valueOf(all.length));
+                    }
+                    in = new ByteArrayInputStream(all);
+                }
+            }
+        }
+
         String reason = c.getResponseMessage();
         if (reason == null || reason.trim().isEmpty()) reason = code < 400 ? "OK" : "Error";
         return new WebResourceResponse(mime, enc, code, reason, out, in);
+    }
+
+    private static final Pattern URI_ATTR = Pattern.compile("URI=\"([^\"]*)\"");
+
+    static String rewritePlaylist(String body, String base) {
+        URL b;
+        try { b = new URL(base); } catch (Exception e) { return body; }
+        StringBuilder sb = new StringBuilder(body.length() + 256);
+        for (String line : body.split("\r?\n")) {
+            String t = line.trim();
+            if (t.isEmpty()) { sb.append('\n'); continue; }
+            if (t.startsWith("#")) {
+                Matcher m = URI_ATTR.matcher(t);
+                StringBuffer o = new StringBuffer();
+                while (m.find()) m.appendReplacement(o, Matcher.quoteReplacement("URI=\"" + abs(b, m.group(1)) + "\""));
+                m.appendTail(o);
+                sb.append(o).append('\n');
+            } else {
+                sb.append(abs(b, t)).append('\n');
+            }
+        }
+        return sb.toString();
+    }
+
+    private static String abs(URL base, String s) {
+        try { return new URL(base, s).toString(); } catch (Exception e) { return s; }
+    }
+
+    private static int readUpTo(InputStream in, byte[] buf) throws IOException {
+        int off = 0;
+        while (off < buf.length) {
+            int r = in.read(buf, off, buf.length - off);
+            if (r < 0) break;
+            off += r;
+        }
+        return off;
+    }
+
+    private static byte[] readAll(InputStream in, int max) throws IOException {
+        ByteArrayOutputStream bo = new ByteArrayOutputStream();
+        byte[] b = new byte[16384];
+        int r;
+        while ((r = in.read(b)) >= 0) {
+            bo.write(b, 0, r);
+            if (bo.size() > max) break;
+        }
+        return bo.toByteArray();
+    }
+
+    private static void removeHeader(Map<String, String> h, String name) {
+        String found = null;
+        for (String k : h.keySet()) if (k.equalsIgnoreCase(name)) found = k;
+        if (found != null) h.remove(found);
     }
 
     private static void cors(Map<String, String> h) {
